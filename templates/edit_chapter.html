@@ -1,0 +1,318 @@
+{% extends 'base.html' %}
+
+{% block title %}GeulMeok9 - {{ chapter.title }} 편집{% endblock %}
+
+{% block extra_head %}
+<style>
+    .editor-toolbar {
+        padding: 10px;
+        background-color: #f8f9fa;
+        border: 1px solid #ced4da;
+        border-bottom: none;
+        border-radius: 4px 4px 0 0;
+    }
+    .editor-container {
+        height: calc(100vh - 250px);
+    }
+    .editor {
+        height: 100%;
+        border: 1px solid #ced4da;
+        border-radius: 0 0 4px 4px;
+        padding: 15px;
+        background-color: white;
+        overflow-y: auto;
+        font-family: 'Nanum Gothic', sans-serif;
+        font-size: 16px;
+        line-height: 1.8;
+    }
+    .word-count {
+        font-size: 0.9rem;
+        color: #6c757d;
+    }
+    .chapter-info {
+        font-size: 0.9rem;
+        color: #6c757d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('index') }}">홈</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('edit_novel', novel_id=novel.id) }}">{{ novel.title }}</a></li>
+                    <li class="breadcrumb-item active">{{ chapter.title }}</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-9">
+            <form id="chapterForm" method="POST" action="{{ url_for('save_chapter', novel_id=novel.id, chapter_id=chapter.id) }}">
+                <div class="mb-3">
+                    <input type="text" class="form-control form-control-lg" id="chapterTitle" name="title" value="{{ chapter.title }}" placeholder="회차 제목">
+                </div>
+                
+                <div class="editor-toolbar d-flex justify-content-between align-items-center">
+                    <div>
+                        <button type="button" class="btn btn-sm btn-outline-secondary me-1" id="boldBtn" title="굵게">
+                            <i class="bi bi-type-bold"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary me-1" id="italicBtn" title="기울임">
+                            <i class="bi bi-type-italic"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary me-3" id="underlineBtn" title="밑줄">
+                            <i class="bi bi-type-underline"></i>
+                        </button>
+                        
+                        <button type="button" class="btn btn-sm btn-outline-secondary me-1" id="checkSpellingBtn" title="맞춤법 검사">
+                            <i class="bi bi-spellcheck"></i> 맞춤법 검사
+                        </button>
+                    </div>
+                    <div class="word-count">
+                        <span id="characterCount">0</span>자 / <span id="wordCount">0</span>단어
+                    </div>
+                </div>
+                
+                <div class="editor-container mb-3">
+                    <div class="editor" id="editor" contenteditable="true">{{ chapter.content|safe }}</div>
+                    <textarea name="content" id="hiddenContent" style="display: none;">{{ chapter.content }}</textarea>
+                </div>
+                
+                <div class="d-flex justify-content-between mb-4">
+                    <div class="chapter-info">
+                        {% if chapter.updated_at %}
+                            마지막 수정: {{ chapter.updated_at.strftime('%Y-%m-%d %H:%M') }}
+                        {% endif %}
+                    </div>
+                    <div>
+                        <input type="hidden" name="assistant_model" id="assistantModel" value="{{ models.assistant[0] }}">
+                        <button type="button" class="btn btn-outline-secondary me-2" id="regenerateSummaryBtn">
+                            <i class="bi bi-arrow-repeat"></i> 요약 다시 생성
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save"></i> 저장
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">회차 요약</h5>
+                </div>
+                <div class="card-body">
+                    {% if chapter.summary %}
+                        <p>{{ chapter.summary }}</p>
+                    {% else %}
+                        <p class="text-muted">회차 내용을 저장하면 자동으로 요약이 생성됩니다.</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">보조 모델 설정</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="assistantModelSelect" class="form-label">맞춤법 검사 및 요약 모델</label>
+                        <select class="form-select" id="assistantModelSelect">
+                            {% for model in models.assistant %}
+                                <option value="{{ model }}">{{ model }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">맞춤법 검사와 회차 요약에 사용할 모델을 선택하세요.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Spelling Check Result Modal -->
+<div class="modal fade" id="spellingResultModal" tabindex="-1" aria-labelledby="spellingResultModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="spellingResultModalLabel">맞춤법 검사 결과</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="spellingResult">
+                    <div class="d-flex justify-content-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+                <button type="button" class="btn btn-primary" id="applySpellingBtn">적용하기</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const editor = document.getElementById('editor');
+        const hiddenContent = document.getElementById('hiddenContent');
+        const characterCountElement = document.getElementById('characterCount');
+        const wordCountElement = document.getElementById('wordCount');
+        const boldBtn = document.getElementById('boldBtn');
+        const italicBtn = document.getElementById('italicBtn');
+        const underlineBtn = document.getElementById('underlineBtn');
+        const checkSpellingBtn = document.getElementById('checkSpellingBtn');
+        const assistantModelSelect = document.getElementById('assistantModelSelect');
+        const assistantModelInput = document.getElementById('assistantModel');
+        const regenerateSummaryBtn = document.getElementById('regenerateSummaryBtn');
+        const chapterForm = document.getElementById('chapterForm');
+        const spellingResultModal = new bootstrap.Modal(document.getElementById('spellingResultModal'));
+        const spellingResult = document.getElementById('spellingResult');
+        const applySpellingBtn = document.getElementById('applySpellingBtn');
+        
+        // Update word and character count
+        function updateCounts() {
+            const text = editor.innerText || '';
+            const charCount = text.length;
+            const wordCount = text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
+            
+            characterCountElement.textContent = charCount;
+            wordCountElement.textContent = wordCount;
+        }
+        
+        // Update hidden textarea with editor content before form submission
+        chapterForm.addEventListener('submit', function() {
+            hiddenContent.value = editor.innerHTML;
+        });
+        
+        // Initialize counts
+        updateCounts();
+        
+        // Update counts when editor content changes
+        editor.addEventListener('input', updateCounts);
+        
+        // Text formatting buttons
+        boldBtn.addEventListener('click', function() {
+            document.execCommand('bold', false, null);
+            editor.focus();
+        });
+        
+        italicBtn.addEventListener('click', function() {
+            document.execCommand('italic', false, null);
+            editor.focus();
+        });
+        
+        underlineBtn.addEventListener('click', function() {
+            document.execCommand('underline', false, null);
+            editor.focus();
+        });
+        
+        // Update assistant model input when select changes
+        assistantModelSelect.addEventListener('change', function() {
+            assistantModelInput.value = this.value;
+        });
+        
+        // Add regenerate summary flag to form when button is clicked
+        regenerateSummaryBtn.addEventListener('click', function() {
+            const regenerateInput = document.createElement('input');
+            regenerateInput.type = 'hidden';
+            regenerateInput.name = 'regenerate_summary';
+            regenerateInput.value = 'true';
+            chapterForm.appendChild(regenerateInput);
+            chapterForm.submit();
+        });
+        
+        // Spelling check
+        checkSpellingBtn.addEventListener('click', function() {
+            const content = editor.innerHTML;
+            const assistantModel = assistantModelSelect.value;
+            
+            // Show modal with loading spinner
+            spellingResult.innerHTML = `
+                <div class="d-flex justify-content-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            `;
+            spellingResultModal.show();
+            
+            // Send request to check spelling
+            fetch('{{ url_for("check_chapter_spelling", novel_id=novel.id, chapter_id=chapter.id) }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    'content': editor.innerText,
+                    'assistant_model': assistantModel
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.result) {
+                    if (data.result === '맞춤법 오류 없음') {
+                        spellingResult.innerHTML = `
+                            <div class="alert alert-success">
+                                <i class="bi bi-check-circle-fill me-2"></i> 맞춤법 오류가 없습니다.
+                            </div>
+                        `;
+                        applySpellingBtn.style.display = 'none';
+                    } else {
+                        spellingResult.innerHTML = `
+                            <div class="mb-3">
+                                <div class="alert alert-info">
+                                    <i class="bi bi-info-circle-fill me-2"></i> 맞춤법 검사 결과입니다. 적용하려면 '적용하기' 버튼을 클릭하세요.
+                                </div>
+                                <div class="border p-3 bg-light">
+                                    ${data.result.replace(/\n/g, '<br>')}
+                                </div>
+                            </div>
+                        `;
+                        applySpellingBtn.style.display = 'block';
+                        
+                        // Store corrected text
+                        applySpellingBtn.dataset.correctedText = data.result;
+                    }
+                } else {
+                    spellingResult.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i> 맞춤법 검사 중 오류가 발생했습니다.
+                        </div>
+                    `;
+                    applySpellingBtn.style.display = 'none';
+                }
+            })
+            .catch(error => {
+                spellingResult.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i> 맞춤법 검사 중 오류가 발생했습니다: ${error.message}
+                    </div>
+                `;
+                applySpellingBtn.style.display = 'none';
+            });
+        });
+        
+        // Apply spelling corrections
+        applySpellingBtn.addEventListener('click', function() {
+            const correctedText = this.dataset.correctedText;
+            if (correctedText) {
+                editor.innerText = correctedText;
+                updateCounts();
+                spellingResultModal.hide();
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,730 @@
+{% extends 'base.html' %}
+
+{% block title %}GeulMeok9 - {{ novel.title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('index') }}">홈</a></li>
+                    <li class="breadcrumb-item active">{{ novel.title }}</li>
+                </ol>
+            </nav>
+            <h1>{{ novel.title }} <small class="text-muted">관리</small></h1>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Left Column: Chapters -->
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">회차 목록</h5>
+                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#newChapterModal">
+                        <i class="bi bi-plus-circle"></i> 새 회차
+                    </button>
+                </div>
+                <div class="card-body">
+                    {% if chapters %}
+                        <ul class="chapter-list" id="chapterList">
+                            {% for chapter in chapters %}
+                                <li class="d-flex justify-content-between align-items-center" data-id="{{ chapter.id }}" data-order="{{ chapter.order }}">
+                                    <span class="chapter-handle me-2"><i class="bi bi-grip-vertical"></i></span>
+                                    <a href="{{ url_for('edit_chapter', novel_id=novel.id, chapter_id=chapter.id) }}" class="flex-grow-1">
+                                        {{ chapter.title }}
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteChapterModal-{{ chapter.id }}">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                    
+                                    <!-- Delete Chapter Modal -->
+                                    <div class="modal fade" id="deleteChapterModal-{{ chapter.id }}" tabindex="-1" aria-labelledby="deleteChapterModalLabel-{{ chapter.id }}" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title" id="deleteChapterModalLabel-{{ chapter.id }}">회차 삭제 확인</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <p class="text-danger">정말로 "{{ chapter.title }}" 회차를 삭제하시겠습니까?</p>
+                                                    <p>이 작업은 되돌릴 수 없습니다.</p>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                                                    <form action="{{ url_for('delete_chapter', novel_id=novel.id, chapter_id=chapter.id) }}" method="POST">
+                                                        <button type="submit" class="btn btn-danger">삭제</button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-center text-muted my-5">
+                            <i class="bi bi-journal-text fs-1 d-block mb-3"></i>
+                            아직 회차가 없습니다. '새 회차' 버튼을 클릭하여 추가하세요.
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Characters -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">캐릭터</h5>
+                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#newCharacterModal">
+                        <i class="bi bi-plus-circle"></i> 새 캐릭터
+                    </button>
+                </div>
+                <div class="card-body">
+                    {% if characters %}
+                        <div class="accordion" id="charactersAccordion">
+                            {% for character in characters %}
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="character-heading-{{ character.id }}">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#character-collapse-{{ character.id }}" aria-expanded="false" aria-controls="character-collapse-{{ character.id }}">
+                                            {{ character.name }}
+                                        </button>
+                                    </h2>
+                                    <div id="character-collapse-{{ character.id }}" class="accordion-collapse collapse" aria-labelledby="character-heading-{{ character.id }}" data-bs-parent="#charactersAccordion">
+                                        <div class="accordion-body">
+                                            <p>{{ character.description|nl2br }}</p>
+                                            <div class="d-flex">
+                                                <button type="button" class="btn btn-sm btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#editCharacterModal-{{ character.id }}">
+                                                    <i class="bi bi-pencil"></i> 수정
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteCharacterModal-{{ character.id }}">
+                                                    <i class="bi bi-trash"></i> 삭제
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Edit Character Modal -->
+                                <div class="modal fade" id="editCharacterModal-{{ character.id }}" tabindex="-1" aria-labelledby="editCharacterModalLabel-{{ character.id }}" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="editCharacterModalLabel-{{ character.id }}">캐릭터 수정</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <form method="POST" action="{{ url_for('edit_character', novel_id=novel.id, character_id=character.id) }}">
+                                                <div class="modal-body">
+                                                    <div class="mb-3">
+                                                        <label for="character-name-{{ character.id }}" class="form-label">이름</label>
+                                                        <input type="text" class="form-control" id="character-name-{{ character.id }}" name="name" value="{{ character.name }}" required>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="character-description-{{ character.id }}" class="form-label">설명</label>
+                                                        <textarea class="form-control" id="character-description-{{ character.id }}" name="description" rows="5">{{ character.description }}</textarea>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                                                    <button type="submit" class="btn btn-primary">저장</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Delete Character Modal -->
+                                <div class="modal fade" id="deleteCharacterModal-{{ character.id }}" tabindex="-1" aria-labelledby="deleteCharacterModalLabel-{{ character.id }}" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="deleteCharacterModalLabel-{{ character.id }}">캐릭터 삭제 확인</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <p class="text-danger">정말로 "{{ character.name }}" 캐릭터를 삭제하시겠습니까?</p>
+                                                <p>이 작업은 되돌릴 수 없습니다.</p>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                                                <form action="{{ url_for('delete_character', novel_id=novel.id, character_id=character.id) }}" method="POST">
+                                                    <button type="submit" class="btn btn-danger">삭제</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-center text-muted my-3">
+                            캐릭터가 없습니다. '새 캐릭터' 버튼을 클릭하여 추가하세요.
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Middle Column: Settings -->
+        <div class="col-md-4">
+            <!-- Settings -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">설정집</h5>
+                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#newSettingModal">
+                        <i class="bi bi-plus-circle"></i> 새 설정
+                    </button>
+                </div>
+                <div class="card-body">
+                    {% if settings %}
+                        <div class="accordion" id="settingsAccordion">
+                            {% for setting in settings %}
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="setting-heading-{{ setting.id }}">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#setting-collapse-{{ setting.id }}" aria-expanded="false" aria-controls="setting-collapse-{{ setting.id }}">
+                                            {{ setting.title }}
+                                        </button>
+                                    </h2>
+                                    <div id="setting-collapse-{{ setting.id }}" class="accordion-collapse collapse" aria-labelledby="setting-heading-{{ setting.id }}" data-bs-parent="#settingsAccordion">
+                                        <div class="accordion-body">
+                                            <p>{{ setting.content|nl2br }}</p>
+                                            <div class="d-flex">
+                                                <button type="button" class="btn btn-sm btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#editSettingModal-{{ setting.id }}">
+                                                    <i class="bi bi-pencil"></i> 수정
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteSettingModal-{{ setting.id }}">
+                                                    <i class="bi bi-trash"></i> 삭제
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Edit Setting Modal -->
+                                <div class="modal fade" id="editSettingModal-{{ setting.id }}" tabindex="-1" aria-labelledby="editSettingModalLabel-{{ setting.id }}" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="editSettingModalLabel-{{ setting.id }}">설정 수정</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <form method="POST" action="{{ url_for('edit_setting', novel_id=novel.id, setting_id=setting.id) }}">
+                                                <div class="modal-body">
+                                                    <div class="mb-3">
+                                                        <label for="setting-title-{{ setting.id }}" class="form-label">제목</label>
+                                                        <input type="text" class="form-control" id="setting-title-{{ setting.id }}" name="title" value="{{ setting.title }}" required>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="setting-content-{{ setting.id }}" class="form-label">내용</label>
+                                                        <textarea class="form-control" id="setting-content-{{ setting.id }}" name="content" rows="5">{{ setting.content }}</textarea>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                                                    <button type="submit" class="btn btn-primary">저장</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Delete Setting Modal -->
+                                <div class="modal fade" id="deleteSettingModal-{{ setting.id }}" tabindex="-1" aria-labelledby="deleteSettingModalLabel-{{ setting.id }}" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="deleteSettingModalLabel-{{ setting.id }}">설정 삭제 확인</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <p class="text-danger">정말로 "{{ setting.title }}" 설정을 삭제하시겠습니까?</p>
+                                                <p>이 작업은 되돌릴 수 없습니다.</p>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                                                <form action="{{ url_for('delete_setting', novel_id=novel.id, setting_id=setting.id) }}" method="POST">
+                                                    <button type="submit" class="btn btn-danger">삭제</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-center text-muted my-3">
+                            설정이 없습니다. '새 설정' 버튼을 클릭하여 추가하세요.
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Prompts -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">프롬프트</h5>
+                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#newPromptModal">
+                        <i class="bi bi-plus-circle"></i> 새 프롬프트
+                    </button>
+                </div>
+                <div class="card-body">
+                    <ul class="nav nav-tabs" id="promptTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="system-tab" data-bs-toggle="tab" data-bs-target="#system-prompts" type="button" role="tab" aria-controls="system-prompts" aria-selected="true">시스템</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="top-tab" data-bs-toggle="tab" data-bs-target="#top-prompts" type="button" role="tab" aria-controls="top-prompts" aria-selected="false">상단</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="bottom-tab" data-bs-toggle="tab" data-bs-target="#bottom-prompts" type="button" role="tab" aria-controls="bottom-prompts" aria-selected="false">하단</button>
+                        </li>
+                    </ul>
+                    <div class="tab-content p-3" id="promptTabContent">
+                        <div class="tab-pane fade show active" id="system-prompts" role="tabpanel" aria-labelledby="system-tab">
+                            {% if system_prompts %}
+                                <div class="list-group">
+                                    {% for prompt in system_prompts %}
+                                        <div class="list-group-item">
+                                            <div class="d-flex w-100 justify-content-between">
+                                                <h6 class="mb-1">{{ prompt.name }}</h6>
+                                                <div>
+                                                    <button type="button" class="btn btn-sm btn-outline-primary me-1" data-bs-toggle="modal" data-bs-target="#editPromptModal-{{ prompt.id }}">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </button>
+                                                    <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deletePromptModal-{{ prompt.id }}">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <p class="mb-1 small text-truncate">{{ prompt.content }}</p>
+                                        </div>
+                                        
+                                        <!-- Delete Prompt Modal -->
+                                        <div class="modal fade" id="deletePromptModal-{{ prompt.id }}" tabindex="-1" aria-labelledby="deletePromptModalLabel-{{ prompt.id }}" aria-hidden="true">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title" id="deletePromptModalLabel-{{ prompt.id }}">프롬프트 삭제 확인</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <p class="text-danger">정말로 "{{ prompt.name }}" 프롬프트를 삭제하시겠습니까?</p>
+                                                        <p>이 작업은 되돌릴 수 없습니다.</p>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                                                        <form action="{{ url_for('delete_prompt', novel_id=novel.id, prompt_id=prompt.id) }}" method="POST">
+                                                            <button type="submit" class="btn btn-danger">삭제</button>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <p class="text-center text-muted my-3">
+                                    시스템 프롬프트가 없습니다.
+                                </p>
+                            {% endif %}
+                        </div>
+                        <div class="tab-pane fade" id="top-prompts" role="tabpanel" aria-labelledby="top-tab">
+                            {% if top_prompts %}
+                                <div class="list-group">
+                                    {% for prompt in top_prompts %}
+                                        <div class="list-group-item">
+                                            <div class="d-flex w-100 justify-content-between">
+                                                <h6 class="mb-1">{{ prompt.name }}</h6>
+                                                <div>
+                                                    <button type="button" class="btn btn-sm btn-outline-primary me-1" data-bs-toggle="modal" data-bs-target="#editPromptModal-{{ prompt.id }}">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </button>
+                                                    <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deletePromptModal-{{ prompt.id }}">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <p class="mb-1 small text-truncate">{{ prompt.content }}</p>
+                                        </div>
+                                        
+                                        <!-- Delete Prompt Modal -->
+                                        <div class="modal fade" id="deletePromptModal-{{ prompt.id }}" tabindex="-1" aria-labelledby="deletePromptModalLabel-{{ prompt.id }}" aria-hidden="true">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title" id="deletePromptModalLabel-{{ prompt.id }}">프롬프트 삭제 확인</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <p class="text-danger">정말로 "{{ prompt.name }}" 프롬프트를 삭제하시겠습니까?</p>
+                                                        <p>이 작업은 되돌릴 수 없습니다.</p>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                                                        <form action="{{ url_for('delete_prompt', novel_id=novel.id, prompt_id=prompt.id) }}" method="POST">
+                                                            <button type="submit" class="btn btn-danger">삭제</button>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <p class="text-center text-muted my-3">
+                                    상단 프롬프트가 없습니다.
+                                </p>
+                            {% endif %}
+                        </div>
+                        <div class="tab-pane fade" id="bottom-prompts" role="tabpanel" aria-labelledby="bottom-tab">
+                            {% if bottom_prompts %}
+                                <div class="list-group">
+                                    {% for prompt in bottom_prompts %}
+                                        <div class="list-group-item">
+                                            <div class="d-flex w-100 justify-content-between">
+                                                <h6 class="mb-1">{{ prompt.name }}</h6>
+                                                <div>
+                                                    <button type="button" class="btn btn-sm btn-outline-primary me-1" data-bs-toggle="modal" data-bs-target="#editPromptModal-{{ prompt.id }}">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </button>
+                                                    <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deletePromptModal-{{ prompt.id }}">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <p class="mb-1 small text-truncate">{{ prompt.content }}</p>
+                                        </div>
+                                        
+                                        <!-- Delete Prompt Modal -->
+                                        <div class="modal fade" id="deletePromptModal-{{ prompt.id }}" tabindex="-1" aria-labelledby="deletePromptModalLabel-{{ prompt.id }}" aria-hidden="true">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title" id="deletePromptModalLabel-{{ prompt.id }}">프롬프트 삭제 확인</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <p class="text-danger">정말로 "{{ prompt.name }}" 프롬프트를 삭제하시겠습니까?</p>
+                                                        <p>이 작업은 되돌릴 수 없습니다.</p>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                                                        <form action="{{ url_for('delete_prompt', novel_id=novel.id, prompt_id=prompt.id) }}" method="POST">
+                                                            <button type="submit" class="btn btn-danger">삭제</button>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <p class="text-center text-muted my-3">
+                                    하단 프롬프트가 없습니다.
+                                </p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: AI Assistant -->
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">AI 보조 기능</h5>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('ai_assist', novel_id=novel.id) }}" method="POST" id="aiAssistForm">
+                        <div class="mb-3">
+                            <label for="mainModel" class="form-label">메인 모델</label>
+                            <select class="form-select" id="mainModel" name="main_model">
+                                {% for model in models.main %}
+                                    <option value="{{ model }}">{{ model }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="assistantModel" class="form-label">보조 모델</label>
+                            <select class="form-select" id="assistantModel" name="assistant_model">
+                                {% for model in models.assistant %}
+                                    <option value="{{ model }}">{{ model }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">시스템 프롬프트</label>
+                            <select class="form-select" name="system_prompt">
+                                <option value="">선택 안함</option>
+                                {% for prompt in system_prompts %}
+                                    <option value="{{ prompt.id }}">{{ prompt.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">상단 프롬프트</label>
+                            <select class="form-select" name="top_prompt">
+                                <option value="">선택 안함</option>
+                                {% for prompt in top_prompts %}
+                                    <option value="{{ prompt.id }}">{{ prompt.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">하단 프롬프트</label>
+                            <select class="form-select" name="bottom_prompt">
+                                <option value="">선택 안함</option>
+                                {% for prompt in bottom_prompts %}
+                                    <option value="{{ prompt.id }}">{{ prompt.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">요약본 선택</label>
+                            <div class="form-text mb-2">AI에게 전달할 회차 요약본을 선택하세요.</div>
+                            {% if chapters %}
+                                <div class="list-group" style="max-height: 200px; overflow-y: auto;">
+                                    {% for chapter in chapters %}
+                                        <label class="list-group-item">
+                                            <input class="form-check-input me-1" type="checkbox" name="summary_chapters" value="{{ chapter.id }}">
+                                            {{ chapter.title }} (요약)
+                                        </label>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="alert alert-warning">
+                                    회차가 없습니다. 먼저 회차를 추가해주세요.
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">회차 선택</label>
+                            <div class="form-text mb-2">AI에게 전달할 회차 본문을 선택하세요.</div>
+                            {% if chapters %}
+                                <div class="list-group" style="max-height: 200px; overflow-y: auto;">
+                                    {% for chapter in chapters %}
+                                        <label class="list-group-item">
+                                            <input class="form-check-input me-1" type="checkbox" name="content_chapters" value="{{ chapter.id }}">
+                                            {{ chapter.title }} (본문)
+                                        </label>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="alert alert-warning">
+                                    회차가 없습니다. 먼저 회차를 추가해주세요.
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="userInput" class="form-label">메인 프롬프트 (질문 또는 콘티)</label>
+                            <textarea class="form-control" id="userInput" name="user_input" rows="5" placeholder="AI에게 질문하거나 다음 회차의 콘티를 입력하세요."></textarea>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary w-100" id="generateButton">AI 응답 생성</button>
+                    </form>
+                    
+                    <!-- Loading Overlay -->
+                    <div id="loadingOverlay" class="position-absolute top-0 start-0 w-100 h-100 bg-white bg-opacity-75 d-flex flex-column justify-content-center align-items-center" style="display: none !important; z-index: 1000;">
+                        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <h5 class="text-primary">AI 응답 생성 중...</h5>
+                        <p class="text-muted small">잠시만 기다려주세요.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modals -->
+    <!-- New Chapter Modal -->
+    <div class="modal fade" id="newChapterModal" tabindex="-1" aria-labelledby="newChapterModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="newChapterModalLabel">새 회차 추가</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="POST" action="{{ url_for('new_chapter', novel_id=novel.id) }}">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="chapterTitle" class="form-label">회차 제목</label>
+                            <input type="text" class="form-control" id="chapterTitle" name="title" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                        <button type="submit" class="btn btn-primary">추가</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- New Character Modal -->
+    <div class="modal fade" id="newCharacterModal" tabindex="-1" aria-labelledby="newCharacterModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="newCharacterModalLabel">새 캐릭터 추가</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="POST" action="{{ url_for('new_character', novel_id=novel.id) }}">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="characterName" class="form-label">캐릭터 이름</label>
+                            <input type="text" class="form-control" id="characterName" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="characterDescription" class="form-label">캐릭터 설명</label>
+                            <textarea class="form-control" id="characterDescription" name="description" rows="5"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                        <button type="submit" class="btn btn-primary">추가</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- New Setting Modal -->
+    <div class="modal fade" id="newSettingModal" tabindex="-1" aria-labelledby="newSettingModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="newSettingModalLabel">새 설정 추가</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="POST" action="{{ url_for('new_setting', novel_id=novel.id) }}">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="settingTitle" class="form-label">설정 제목</label>
+                            <input type="text" class="form-control" id="settingTitle" name="title" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="settingContent" class="form-label">설정 내용</label>
+                            <textarea class="form-control" id="settingContent" name="content" rows="5"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                        <button type="submit" class="btn btn-primary">추가</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- New Prompt Modal -->
+    <div class="modal fade" id="newPromptModal" tabindex="-1" aria-labelledby="newPromptModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="newPromptModalLabel">새 프롬프트 추가</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="POST" action="{{ url_for('new_prompt', novel_id=novel.id) }}">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="promptName" class="form-label">프롬프트 이름</label>
+                            <input type="text" class="form-control" id="promptName" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="promptType" class="form-label">프롬프트 유형</label>
+                            <select class="form-select" id="promptType" name="prompt_type" required>
+                                <option value="system">시스템 프롬프트</option>
+                                <option value="top">상단 프롬프트</option>
+                                <option value="bottom">하단 프롬프트</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="promptContent" class="form-label">프롬프트 내용</label>
+                            <textarea class="form-control" id="promptContent" name="content" rows="5"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                        <button type="submit" class="btn btn-primary">추가</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Initialize Sortable for chapter reordering
+    document.addEventListener('DOMContentLoaded', function() {
+        const chapterList = document.getElementById('chapterList');
+        if (chapterList) {
+            new Sortable(chapterList, {
+                animation: 150,
+                handle: '.chapter-handle',
+                ghostClass: 'sortable-ghost',
+                onEnd: function() {
+                    // Update order after drag and drop
+                    const items = chapterList.querySelectorAll('li');
+                    const orderData = [];
+                    
+                    items.forEach((item, index) => {
+                        orderData.push({
+                            id: item.dataset.id,
+                            order: index + 1
+                        });
+                        
+                        // Update data-order attribute
+                        item.dataset.order = index + 1;
+                    });
+                    
+                    // Send order data to server
+                    fetch('{{ url_for("reorder_chapters", novel_id=novel.id) }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ order: orderData }),
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            console.log('Chapters reordered successfully');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error reordering chapters:', error);
+                    });
+                }
+            });
+        }
+        
+        // AI Assist form loading overlay
+        const aiAssistForm = document.getElementById('aiAssistForm');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        
+        if (aiAssistForm && loadingOverlay) {
+            aiAssistForm.addEventListener('submit', function() {
+                // Show loading overlay
+                loadingOverlay.style.display = 'flex';
+                
+                // Disable the submit button to prevent multiple submissions
+                const submitButton = document.getElementById('generateButton');
+                if (submitButton) {
+                    submitButton.disabled = true;
+                    submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>처리 중...';
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

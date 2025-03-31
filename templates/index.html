@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+
+{% block title %}GeulMeok9 - 홈{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-4">GeulMeok9 <small class="text-muted">웹소설 작성 도구</small></h1>
+            <p class="lead">AI 보조 기능을 갖춘 웹소설 작성 도구입니다.</p>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">내 소설 목록</h5>
+                    <a href="{{ url_for('new_novel') }}" class="btn btn-primary btn-sm">
+                        <i class="bi bi-plus-circle"></i> 새 소설 만들기
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if novels %}
+                        <div class="list-group">
+                            {% for novel in novels %}
+                                <div class="list-group-item">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h5 class="mb-1">
+                                            <a href="{{ url_for('edit_novel', novel_id=novel.id) }}" class="text-decoration-none">
+                                                {{ novel.title }}
+                                            </a>
+                                        </h5>
+                                        <small>마지막 수정: {{ novel.updated_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <small>회차 수: {{ novel.chapters|length }}</small>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                data-bs-toggle="modal" data-bs-target="#deleteNovelModal-{{ novel.id }}">
+                                            <i class="bi bi-trash"></i> 삭제
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Delete Novel Modal -->
+                                    <div class="modal fade" id="deleteNovelModal-{{ novel.id }}" tabindex="-1" 
+                                         aria-labelledby="deleteNovelModalLabel-{{ novel.id }}" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title" id="deleteNovelModalLabel-{{ novel.id }}">소설 삭제 확인</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <p class="text-danger">정말로 "{{ novel.title }}" 소설을 삭제하시겠습니까?</p>
+                                                    <p>이 작업은 되돌릴 수 없으며, 모든 회차, 캐릭터, 설정집, 프롬프트 정보가 함께 삭제됩니다.</p>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                                                    <form action="{{ url_for('delete_novel', novel_id=novel.id) }}" method="POST">
+                                                        <button type="submit" class="btn btn-danger">삭제</button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-center text-muted my-5">
+                            <i class="bi bi-journal-text fs-1 d-block mb-3"></i>
+                            아직 소설이 없습니다. '새 소설 만들기'를 클릭하여 시작하세요.
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">GeulMeok9 소개</h5>
+                </div>
+                <div class="card-body">
+                    <p>GeulMeok9은 웹소설 작가를 위한 통합 작성 도구입니다. 다음과 같은 기능을 제공합니다:</p>
+                    <ul>
+                        <li>회차 작성 및 관리</li>
+                        <li>Google AI Studio API를 활용한 AI 보조 기능</li>
+                        <li>다양한 AI 모델 선택 가능</li>
+                        <li>맞춤법 검사 및 자동 요약 기능</li>
+                        <li>설정집과 캐릭터 정보 관리</li>
+                        <li>커스텀 프롬프트 저장 및 활용</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">시작하기</h5>
+                </div>
+                <div class="card-body">
+                    <ol>
+                        <li>왼쪽 상단의 '새 소설 만들기'를 클릭하여 새 프로젝트를 시작하세요.</li>
+                        <li>소설의 제목을 입력하고 생성합니다.</li>
+                        <li>회차, 설정집, 캐릭터 정보를 추가합니다.</li>
+                        <li>AI 보조 기능을 활용하여 소설을 작성하세요.</li>
+                    </ol>
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle-fill me-2"></i>
+                        Google AI Studio API를 사용하기 위해서는 API 키가 필요합니다. 
+                        <code>.env</code> 파일에 <code>GOOGLE_API_KEY=your_api_key_here</code> 형식으로 API 키를 설정해주세요.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
