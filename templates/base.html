@@ -67,6 +67,122 @@
             opacity: 0.5;
             background-color: #c8e6c9;
         }
+        /* 챗봇 스타일 */
+        .chatbot-toggle {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: #007bff;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            border: none;
+        }
+        .chatbot-container {
+            position: fixed;
+            bottom: 80px;
+            left: 20px;
+            width: 350px;
+            height: 500px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            display: none;
+            flex-direction: column;
+            z-index: 999;
+            overflow: hidden;
+        }
+        .chatbot-header {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .chatbot-messages {
+            flex-grow: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .message {
+            max-width: 80%;
+            padding: 10px 15px;
+            border-radius: 15px;
+            margin-bottom: 5px;
+        }
+        .user-message {
+            background-color: #007bff;
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 5px;
+        }
+        .bot-message {
+            background-color: #f1f1f1;
+            align-self: flex-start;
+            border-bottom-left-radius: 5px;
+        }
+        .chatbot-input {
+            display: flex;
+            padding: 10px;
+            border-top: 1px solid #e9ecef;
+        }
+        .chatbot-input input {
+            flex-grow: 1;
+            border: 1px solid #ced4da;
+            border-radius: 20px;
+            padding: 8px 15px;
+            margin-right: 10px;
+        }
+        .chatbot-input button {
+            border: none;
+            background-color: #007bff;
+            color: white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .chatbot-input button:disabled {
+            background-color: #6c757d;
+        }
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            margin-left: 10px;
+        }
+        .typing-indicator span {
+            height: 8px;
+            width: 8px;
+            background-color: #6c757d;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 3px;
+            animation: typing 1s infinite;
+        }
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        @keyframes typing {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+            100% { transform: translateY(0); }
+        }
     </style>
     {% block extra_head %}{% endblock %}
 </head>
@@ -90,6 +206,11 @@
                             </a>
                         </li>
                         {% endif %}
+                        <li class="nav-item">
+                            <a href="{{ url_for('settings') }}" class="nav-link {% if request.endpoint == 'settings' %}active{% endif %}">
+                                <i class="bi bi-gear me-2"></i> AI 설정
+                            </a>
+                        </li>
                     </ul>
                 </div>
             </div>
@@ -101,8 +222,182 @@
         </div>
     </div>
     
+    <!-- 챗봇 UI -->
+    <button class="chatbot-toggle" id="chatbotToggle">
+        <i class="bi bi-chat-dots-fill"></i>
+    </button>
+    
+    <div class="chatbot-container" id="chatbotContainer">
+        <div class="chatbot-header">
+            <h5 class="m-0">AI 도우미</h5>
+            <button class="btn-close btn-close-white" id="chatbotClose"></button>
+        </div>
+        <div class="chatbot-messages" id="chatbotMessages">
+            <div class="message bot-message">
+                안녕하세요! **글먹9 AI 도우미**입니다. 무엇을 도와드릴까요?<br><br>다음과 같은 기능을 사용할 수 있습니다:<br><br>- 소설 작성 도움<br>- 캐릭터 설정 아이디어<br>- 스토리 구성 조언<br>- 마크다운 사용법 안내
+            </div>
+        </div>
+        <div class="chatbot-input">
+            <input type="text" id="chatbotInput" placeholder="메시지를 입력하세요...">
+            <button id="chatbotSend">
+                <i class="bi bi-send-fill"></i>
+            </button>
+        </div>
+    </div>
+    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <!-- 챗봇 스크립트 -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const chatbotToggle = document.getElementById('chatbotToggle');
+            const chatbotContainer = document.getElementById('chatbotContainer');
+            const chatbotClose = document.getElementById('chatbotClose');
+            const chatbotInput = document.getElementById('chatbotInput');
+            const chatbotSend = document.getElementById('chatbotSend');
+            const chatbotMessages = document.getElementById('chatbotMessages');
+            
+            // 마크다운 설정
+            marked.setOptions({
+                breaks: true,
+                gfm: true
+            });
+            
+            // 초기 메시지에 마크다운 적용
+            const initialMessage = chatbotMessages.querySelector('.bot-message');
+            if (initialMessage) {
+                initialMessage.innerHTML = marked.parse("안녕하세요! **글먹9 AI 도우미**입니다. 무엇을 도와드릴까요?\n\n다음과 같은 기능을 사용할 수 있습니다:\n\n- 소설 작성 도움\n- 캐릭터 설정 아이디어\n- 스토리 구성 조언\n- 마크다운 사용법 안내");
+            }
+            
+            // 챗봇 토글 버튼 클릭 이벤트
+            chatbotToggle.addEventListener('click', function() {
+                chatbotContainer.style.display = 'flex';
+                chatbotInput.focus();
+            });
+            
+            // 챗봇 닫기 버튼 클릭 이벤트
+            chatbotClose.addEventListener('click', function() {
+                chatbotContainer.style.display = 'none';
+            });
+            
+            // 엔터 키로 메시지 전송
+            chatbotInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+            
+            // 전송 버튼 클릭 이벤트
+            chatbotSend.addEventListener('click', sendMessage);
+            
+            // 메시지 전송 함수
+            function sendMessage() {
+                const message = chatbotInput.value.trim();
+                if (!message) return;
+                
+                // 사용자 메시지 추가
+                addMessage(message, 'user');
+                chatbotInput.value = '';
+                
+                // 입력 비활성화 및 로딩 표시
+                chatbotInput.disabled = true;
+                chatbotSend.disabled = true;
+                
+                // 타이핑 표시기 추가
+                const typingIndicator = document.createElement('div');
+                typingIndicator.className = 'message bot-message typing-indicator';
+                typingIndicator.innerHTML = '<span></span><span></span><span></span>';
+                chatbotMessages.appendChild(typingIndicator);
+                chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+                
+                // API 호출
+                fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        model: 'gemini-2.0-flash'
+                    }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // 타이핑 표시기 제거
+                    chatbotMessages.removeChild(typingIndicator);
+                    
+                    // 봇 응답 추가
+                    if (data.response) {
+                        addMessage(data.response, 'bot', true);
+                    } else if (data.error) {
+                        addMessage('죄송합니다. 오류가 발생했습니다: ' + data.error, 'bot', true);
+                    }
+                })
+                .catch(error => {
+                    // 타이핑 표시기 제거
+                    chatbotMessages.removeChild(typingIndicator);
+                    
+                    // 오류 메시지 추가
+                    addMessage('죄송합니다. 오류가 발생했습니다: ' + error, 'bot', true);
+                })
+                .finally(() => {
+                    // 입력 활성화
+                    chatbotInput.disabled = false;
+                    chatbotSend.disabled = false;
+                    chatbotInput.focus();
+                });
+            }
+            
+            // 메시지 추가 함수
+            function addMessage(text, sender, parseMarkdown = false) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${sender}-message`;
+                
+                if (parseMarkdown && sender === 'bot') {
+                    messageDiv.innerHTML = marked.parse(text);
+                    
+                    // 코드 블록에 스타일 적용
+                    const codeBlocks = messageDiv.querySelectorAll('pre code');
+                    codeBlocks.forEach(block => {
+                        block.style.display = 'block';
+                        block.style.padding = '10px';
+                        block.style.backgroundColor = '#f8f9fa';
+                        block.style.borderRadius = '4px';
+                        block.style.overflowX = 'auto';
+                        block.style.fontFamily = 'monospace';
+                        block.style.fontSize = '0.9em';
+                    });
+                    
+                    // 인라인 코드에 스타일 적용
+                    const inlineCodes = messageDiv.querySelectorAll('code:not(pre code)');
+                    inlineCodes.forEach(code => {
+                        code.style.backgroundColor = '#f8f9fa';
+                        code.style.padding = '2px 4px';
+                        code.style.borderRadius = '4px';
+                        code.style.fontFamily = 'monospace';
+                        code.style.fontSize = '0.9em';
+                    });
+                    
+                    // 링크에 스타일 적용
+                    const links = messageDiv.querySelectorAll('a');
+                    links.forEach(link => {
+                        link.style.color = '#007bff';
+                        link.style.textDecoration = 'none';
+                        link.target = '_blank';
+                        link.rel = 'noopener noreferrer';
+                    });
+                } else {
+                    messageDiv.textContent = text;
+                }
+                
+                chatbotMessages.appendChild(messageDiv);
+                chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+            }
+        });
+    </script>
+    
     {% block scripts %}{% endblock %}
 </body>
 </html>

@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block title %}GeulMeok9 - AI 설정{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">AI 설정</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('settings') }}">
+                        <div class="mb-4">
+                            <h5>타임아웃 설정</h5>
+                            <p class="text-muted">AI 응답 생성 시간 제한을 설정합니다. 더 긴 응답이 필요한 경우 이 값을 늘리세요.</p>
+                            <div class="input-group mb-3">
+                                <input type="number" class="form-control" id="timeout" name="timeout" value="{{ timeout }}" min="30" max="600">
+                                <span class="input-group-text">초</span>
+                            </div>
+                            <div class="form-text">권장 범위: 30초 ~ 600초 (10분)</div>
+                        </div>
+
+                        <div class="mb-4">
+                            <h5>검열 설정</h5>
+                            <p class="text-muted">AI 응답의 검열 수준을 설정합니다. 소설 작성 시 제한 없는 콘텐츠가 필요한 경우 '검열 없음'을 선택하세요.</p>
+                            <select class="form-select" id="safety_settings" name="safety_settings">
+                                <option value="moderate" {% if safety_settings == 'moderate' %}selected{% endif %}>기본 검열</option>
+                                <option value="off" {% if safety_settings == 'off' %}selected{% endif %}>검열 없음</option>
+                            </select>
+                            <div class="form-text mt-2">주의: '검열 없음' 설정은 모든 유형의 콘텐츠를 허용합니다. 소설 창작 목적으로만 사용하세요.</div>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle-fill me-2"></i>
+                            설정을 변경하면 즉시 적용됩니다. 서버를 재시작할 필요가 없습니다.
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">설정 저장</button>
+                            <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">홈으로 돌아가기</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

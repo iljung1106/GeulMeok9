@@ -84,9 +84,10 @@
                     {% if characters %}
                         <div class="accordion" id="charactersAccordion">
                             {% for character in characters %}
-                                <div class="accordion-item">
+                                <div class="accordion-item" data-id="{{ character.id }}" data-order="{{ character.order }}">
                                     <h2 class="accordion-header" id="character-heading-{{ character.id }}">
                                         <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#character-collapse-{{ character.id }}" aria-expanded="false" aria-controls="character-collapse-{{ character.id }}">
+                                            <i class="bi bi-grip-vertical character-handle me-2"></i>
                                             {{ character.name }}
                                         </button>
                                     </h2>
@@ -179,9 +180,10 @@
                     {% if settings %}
                         <div class="accordion" id="settingsAccordion">
                             {% for setting in settings %}
-                                <div class="accordion-item">
+                                <div class="accordion-item" data-id="{{ setting.id }}" data-order="{{ setting.order }}">
                                     <h2 class="accordion-header" id="setting-heading-{{ setting.id }}">
                                         <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#setting-collapse-{{ setting.id }}" aria-expanded="false" aria-controls="setting-collapse-{{ setting.id }}">
+                                            <i class="bi bi-grip-vertical setting-handle me-2"></i>
                                             {{ setting.title }}
                                         </button>
                                     </h2>
@@ -320,6 +322,42 @@
                                                 </div>
                                             </div>
                                         </div>
+                                        
+                                        <!-- Edit Prompt Modal -->
+                                        <div class="modal fade" id="editPromptModal-{{ prompt.id }}" tabindex="-1" aria-labelledby="editPromptModalLabel-{{ prompt.id }}" aria-hidden="true">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title" id="editPromptModalLabel-{{ prompt.id }}">프롬프트 수정</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <form method="POST" action="{{ url_for('edit_prompt', novel_id=novel.id, prompt_id=prompt.id) }}">
+                                                        <div class="modal-body">
+                                                            <div class="mb-3">
+                                                                <label for="editPromptName-{{ prompt.id }}" class="form-label">프롬프트 이름</label>
+                                                                <input type="text" class="form-control" id="editPromptName-{{ prompt.id }}" name="name" value="{{ prompt.name }}" required>
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label for="editPromptType-{{ prompt.id }}" class="form-label">프롬프트 유형</label>
+                                                                <select class="form-select" id="editPromptType-{{ prompt.id }}" name="prompt_type" required>
+                                                                    <option value="system" {% if prompt.prompt_type == 'system' %}selected{% endif %}>시스템 프롬프트</option>
+                                                                    <option value="top" {% if prompt.prompt_type == 'top' %}selected{% endif %}>상단 프롬프트</option>
+                                                                    <option value="bottom" {% if prompt.prompt_type == 'bottom' %}selected{% endif %}>하단 프롬프트</option>
+                                                                </select>
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label for="editPromptContent-{{ prompt.id }}" class="form-label">프롬프트 내용</label>
+                                                                <textarea class="form-control" id="editPromptContent-{{ prompt.id }}" name="content" rows="5">{{ prompt.content }}</textarea>
+                                                            </div>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                                                            <button type="submit" class="btn btn-primary">저장</button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
                                     {% endfor %}
                                 </div>
                             {% else %}
@@ -365,6 +403,42 @@
                                                             <button type="submit" class="btn btn-danger">삭제</button>
                                                         </form>
                                                     </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Edit Prompt Modal -->
+                                        <div class="modal fade" id="editPromptModal-{{ prompt.id }}" tabindex="-1" aria-labelledby="editPromptModalLabel-{{ prompt.id }}" aria-hidden="true">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title" id="editPromptModalLabel-{{ prompt.id }}">프롬프트 수정</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <form method="POST" action="{{ url_for('edit_prompt', novel_id=novel.id, prompt_id=prompt.id) }}">
+                                                        <div class="modal-body">
+                                                            <div class="mb-3">
+                                                                <label for="editPromptName-{{ prompt.id }}" class="form-label">프롬프트 이름</label>
+                                                                <input type="text" class="form-control" id="editPromptName-{{ prompt.id }}" name="name" value="{{ prompt.name }}" required>
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label for="editPromptType-{{ prompt.id }}" class="form-label">프롬프트 유형</label>
+                                                                <select class="form-select" id="editPromptType-{{ prompt.id }}" name="prompt_type" required>
+                                                                    <option value="system" {% if prompt.prompt_type == 'system' %}selected{% endif %}>시스템 프롬프트</option>
+                                                                    <option value="top" {% if prompt.prompt_type == 'top' %}selected{% endif %}>상단 프롬프트</option>
+                                                                    <option value="bottom" {% if prompt.prompt_type == 'bottom' %}selected{% endif %}>하단 프롬프트</option>
+                                                                </select>
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label for="editPromptContent-{{ prompt.id }}" class="form-label">프롬프트 내용</label>
+                                                                <textarea class="form-control" id="editPromptContent-{{ prompt.id }}" name="content" rows="5">{{ prompt.content }}</textarea>
+                                                            </div>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                                                            <button type="submit" class="btn btn-primary">저장</button>
+                                                        </div>
+                                                    </form>
                                                 </div>
                                             </div>
                                         </div>
@@ -416,6 +490,42 @@
                                                 </div>
                                             </div>
                                         </div>
+                                        
+                                        <!-- Edit Prompt Modal -->
+                                        <div class="modal fade" id="editPromptModal-{{ prompt.id }}" tabindex="-1" aria-labelledby="editPromptModalLabel-{{ prompt.id }}" aria-hidden="true">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title" id="editPromptModalLabel-{{ prompt.id }}">프롬프트 수정</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <form method="POST" action="{{ url_for('edit_prompt', novel_id=novel.id, prompt_id=prompt.id) }}">
+                                                        <div class="modal-body">
+                                                            <div class="mb-3">
+                                                                <label for="editPromptName-{{ prompt.id }}" class="form-label">프롬프트 이름</label>
+                                                                <input type="text" class="form-control" id="editPromptName-{{ prompt.id }}" name="name" value="{{ prompt.name }}" required>
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label for="editPromptType-{{ prompt.id }}" class="form-label">프롬프트 유형</label>
+                                                                <select class="form-select" id="editPromptType-{{ prompt.id }}" name="prompt_type" required>
+                                                                    <option value="system" {% if prompt.prompt_type == 'system' %}selected{% endif %}>시스템 프롬프트</option>
+                                                                    <option value="top" {% if prompt.prompt_type == 'top' %}selected{% endif %}>상단 프롬프트</option>
+                                                                    <option value="bottom" {% if prompt.prompt_type == 'bottom' %}selected{% endif %}>하단 프롬프트</option>
+                                                                </select>
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label for="editPromptContent-{{ prompt.id }}" class="form-label">프롬프트 내용</label>
+                                                                <textarea class="form-control" id="editPromptContent-{{ prompt.id }}" name="content" rows="5">{{ prompt.content }}</textarea>
+                                                            </div>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                                                            <button type="submit" class="btn btn-primary">저장</button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
                                     {% endfor %}
                                 </div>
                             {% else %}
@@ -456,30 +566,30 @@
                         
                         <div class="mb-3">
                             <label class="form-label">시스템 프롬프트</label>
-                            <select class="form-select" name="system_prompt">
+                            <select class="form-select" name="system_prompt" id="systemPrompt">
                                 <option value="">선택 안함</option>
                                 {% for prompt in system_prompts %}
-                                    <option value="{{ prompt.id }}">{{ prompt.name }}</option>
+                                    <option value="{{ prompt.id }}" {% if selected_system_prompt == prompt.id|string %}selected{% endif %}>{{ prompt.name }}</option>
                                 {% endfor %}
                             </select>
                         </div>
                         
                         <div class="mb-3">
                             <label class="form-label">상단 프롬프트</label>
-                            <select class="form-select" name="top_prompt">
+                            <select class="form-select" name="top_prompt" id="topPrompt">
                                 <option value="">선택 안함</option>
                                 {% for prompt in top_prompts %}
-                                    <option value="{{ prompt.id }}">{{ prompt.name }}</option>
+                                    <option value="{{ prompt.id }}" {% if selected_top_prompt == prompt.id|string %}selected{% endif %}>{{ prompt.name }}</option>
                                 {% endfor %}
                             </select>
                         </div>
                         
                         <div class="mb-3">
                             <label class="form-label">하단 프롬프트</label>
-                            <select class="form-select" name="bottom_prompt">
+                            <select class="form-select" name="bottom_prompt" id="bottomPrompt">
                                 <option value="">선택 안함</option>
                                 {% for prompt in bottom_prompts %}
-                                    <option value="{{ prompt.id }}">{{ prompt.name }}</option>
+                                    <option value="{{ prompt.id }}" {% if selected_bottom_prompt == prompt.id|string %}selected{% endif %}>{{ prompt.name }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -666,6 +776,7 @@
 <script>
     // Initialize Sortable for chapter reordering
     document.addEventListener('DOMContentLoaded', function() {
+        // 회차 정렬 기능
         const chapterList = document.getElementById('chapterList');
         if (chapterList) {
             new Sortable(chapterList, {
@@ -703,6 +814,92 @@
                     })
                     .catch(error => {
                         console.error('Error reordering chapters:', error);
+                    });
+                }
+            });
+        }
+        
+        // 캐릭터 정렬 기능
+        const charactersAccordion = document.getElementById('charactersAccordion');
+        if (charactersAccordion) {
+            new Sortable(charactersAccordion, {
+                animation: 150,
+                handle: '.character-handle',
+                ghostClass: 'sortable-ghost',
+                onEnd: function() {
+                    // Update order after drag and drop
+                    const items = charactersAccordion.querySelectorAll('.accordion-item');
+                    const orderData = [];
+                    
+                    items.forEach((item, index) => {
+                        orderData.push({
+                            id: item.dataset.id,
+                            order: index + 1
+                        });
+                        
+                        // Update data-order attribute
+                        item.dataset.order = index + 1;
+                    });
+                    
+                    // Send order data to server
+                    fetch('{{ url_for("reorder_characters", novel_id=novel.id) }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ order: orderData }),
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            console.log('Characters reordered successfully');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error reordering characters:', error);
+                    });
+                }
+            });
+        }
+        
+        // 설정집 정렬 기능
+        const settingsAccordion = document.getElementById('settingsAccordion');
+        if (settingsAccordion) {
+            new Sortable(settingsAccordion, {
+                animation: 150,
+                handle: '.setting-handle',
+                ghostClass: 'sortable-ghost',
+                onEnd: function() {
+                    // Update order after drag and drop
+                    const items = settingsAccordion.querySelectorAll('.accordion-item');
+                    const orderData = [];
+                    
+                    items.forEach((item, index) => {
+                        orderData.push({
+                            id: item.dataset.id,
+                            order: index + 1
+                        });
+                        
+                        // Update data-order attribute
+                        item.dataset.order = index + 1;
+                    });
+                    
+                    // Send order data to server
+                    fetch('{{ url_for("reorder_settings", novel_id=novel.id) }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ order: orderData }),
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            console.log('Settings reordered successfully');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error reordering settings:', error);
                     });
                 }
             });
