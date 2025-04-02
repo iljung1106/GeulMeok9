@@ -27,6 +27,8 @@ else:
 # AI 설정 값
 AI_TIMEOUT = int(os.getenv("AI_TIMEOUT", "300"))  # 기본 타임아웃 300초로 증가
 AI_SAFETY_SETTINGS = os.getenv("AI_SAFETY_SETTINGS", "off")  # 기본 검열 수준을 off로 설정
+AI_TEMPERATURE = float(os.getenv("AI_TEMPERATURE", "0.7"))  # 기본 온도 설정
+AI_TOP_P = float(os.getenv("AI_TOP_P", "0.9"))  # 기본 top_p 설정
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret_key'  # Add secret key for session
@@ -121,13 +123,36 @@ def generate_ai_response(prompt, model_name="gemini-2.5-pro-exp-03-25"):
             }
         ]
         
-        # 모델 생성 시 안전 설정 적용
-        model = genai.GenerativeModel(model_name, safety_settings=safety_settings)
+        # 생성 구성 설정 (온도 및 top_p)
+        generation_config = {
+            "temperature": AI_TEMPERATURE,
+            "top_p": AI_TOP_P
+        }
         
-        # 응답 생성 (타임아웃 없이)
+        # 모델 생성 시 안전 설정 적용
+        model = genai.GenerativeModel(model_name, safety_settings=safety_settings, generation_config=generation_config)
+        
+        # 응답 생성
         response = model.generate_content(prompt)
         return response.text
     except Exception as e:
+        # 타임아웃 오류 발생 시 재시도
+        if "504 Deadline Exceeded" in str(e):
+            try:
+                import time
+                # 잠시 대기 후 재시도
+                time.sleep(2)
+                model = genai.GenerativeModel(model_name, safety_settings=safety_settings, generation_config=generation_config)
+                # 스트리밍 모드로 시도 (일부 API에서 더 안정적)
+                response = model.generate_content(prompt, stream=True)
+                # 스트리밍 응답을 하나의 텍스트로 결합
+                full_response = ""
+                for chunk in response:
+                    if chunk.text:
+                        full_response += chunk.text
+                return full_response
+            except Exception as retry_error:
+                return f"Error generating AI response after retry: {str(retry_error)}"
         return f"Error generating AI response: {str(e)}"
 
 def check_spelling(text, model_name="gemini-2.0-flash"):
@@ -501,26 +526,34 @@ with app.app_context():
 # AI 설정 변경 라우트
 @app.route('/settings', methods=['GET', 'POST'])
 def settings():
-    global AI_TIMEOUT, AI_SAFETY_SETTINGS
+    global AI_TIMEOUT, AI_SAFETY_SETTINGS, AI_TEMPERATURE, AI_TOP_P
     
     if request.method == 'POST':
         # 폼에서 설정 값 가져오기
-        new_timeout = request.form.get('timeout', '120')
-        new_safety = request.form.get('safety_settings', 'moderate')
+        new_timeout = request.form.get('timeout', '300')
+        new_safety = request.form.get('safety_settings', 'off')
+        new_temperature = request.form.get('temperature', '0.7')
+        new_top_p = request.form.get('top_p', '0.9')
         
         # 환경 변수 설정
         os.environ['AI_TIMEOUT'] = new_timeout
         os.environ['AI_SAFETY_SETTINGS'] = new_safety
+        os.environ['AI_TEMPERATURE'] = new_temperature
+        os.environ['AI_TOP_P'] = new_top_p
         
         # 전역 변수 업데이트
         AI_TIMEOUT = int(new_timeout)
         AI_SAFETY_SETTINGS = new_safety
+        AI_TEMPERATURE = float(new_temperature)
+        AI_TOP_P = float(new_top_p)
         
         return redirect(url_for('settings'))
     
     return render_template('settings.html', 
                           timeout=AI_TIMEOUT, 
-                          safety_settings=AI_SAFETY_SETTINGS)
+                          safety_settings=AI_SAFETY_SETTINGS,
+                          temperature=AI_TEMPERATURE,
+                          top_p=AI_TOP_P)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

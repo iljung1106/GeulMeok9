@@ -32,6 +32,40 @@
                             <div class="form-text mt-2">주의: '검열 없음' 설정은 모든 유형의 콘텐츠를 허용합니다. 소설 창작 목적으로만 사용하세요.</div>
                         </div>
 
+                        <div class="mb-4">
+                            <h5>온도(Temperature) 설정</h5>
+                            <p class="text-muted">AI 응답의 창의성 수준을 조절합니다. 높을수록 더 다양하고 창의적인 응답을, 낮을수록 더 일관되고 예측 가능한 응답을 생성합니다.</p>
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <input type="range" class="form-range" id="temperature" name="temperature" min="0" max="1" step="0.1" value="{{ temperature }}">
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="temperature_value" value="{{ temperature }}" min="0" max="1" step="0.1" readonly>
+                                        <span class="input-group-text">값</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-text">권장 범위: 0.0 (매우 일관됨) ~ 1.0 (매우 창의적)</div>
+                        </div>
+
+                        <div class="mb-4">
+                            <h5>Top-P 설정</h5>
+                            <p class="text-muted">AI가 다음 토큰을 선택할 때 고려하는 확률 질량의 비율을 설정합니다. 높은 값은 더 다양한 응답을, 낮은 값은 더 집중된 응답을 생성합니다.</p>
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <input type="range" class="form-range" id="top_p" name="top_p" min="0" max="1" step="0.1" value="{{ top_p }}">
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="top_p_value" value="{{ top_p }}" min="0" max="1" step="0.1" readonly>
+                                        <span class="input-group-text">값</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-text">권장 범위: 0.1 (집중됨) ~ 1.0 (다양함)</div>
+                        </div>
+
                         <div class="alert alert-info">
                             <i class="bi bi-info-circle-fill me-2"></i>
                             설정을 변경하면 즉시 적용됩니다. 서버를 재시작할 필요가 없습니다.
@@ -47,4 +81,15 @@
         </div>
     </div>
 </div>
+
+<script>
+    // 슬라이더 값을 실시간으로 표시
+    document.getElementById('temperature').addEventListener('input', function() {
+        document.getElementById('temperature_value').value = this.value;
+    });
+    
+    document.getElementById('top_p').addEventListener('input', function() {
+        document.getElementById('top_p_value').value = this.value;
+    });
+</script>
 {% endblock %}
