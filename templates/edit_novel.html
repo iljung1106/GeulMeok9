@@ -72,6 +72,98 @@
                 </div>
             </div>
 
+            <!-- Major Summaries -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">대요약본</h5>
+                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#newMajorSummaryModal">
+                        <i class="bi bi-plus-circle"></i> 새 대요약본
+                    </button>
+                </div>
+                <div class="card-body">
+                    {% if major_summaries %}
+                        <div class="accordion" id="majorSummariesAccordion">
+                            {% for summary in major_summaries %}
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="major-summary-heading-{{ summary.id }}">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#major-summary-collapse-{{ summary.id }}" aria-expanded="false" aria-controls="major-summary-collapse-{{ summary.id }}">
+                                            {{ summary.title }}
+                                        </button>
+                                    </h2>
+                                    <div id="major-summary-collapse-{{ summary.id }}" class="accordion-collapse collapse" aria-labelledby="major-summary-heading-{{ summary.id }}" data-bs-parent="#majorSummariesAccordion">
+                                        <div class="accordion-body">
+                                            <p>{{ summary.content|nl2br }}</p>
+                                            <div class="d-flex">
+                                                <button type="button" class="btn btn-sm btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#editMajorSummaryModal-{{ summary.id }}">
+                                                    <i class="bi bi-pencil"></i> 수정
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteMajorSummaryModal-{{ summary.id }}">
+                                                    <i class="bi bi-trash"></i> 삭제
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Edit Major Summary Modal -->
+                                <div class="modal fade" id="editMajorSummaryModal-{{ summary.id }}" tabindex="-1" aria-labelledby="editMajorSummaryModalLabel-{{ summary.id }}" aria-hidden="true">
+                                    <div class="modal-dialog modal-lg">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="editMajorSummaryModalLabel-{{ summary.id }}">대요약본 수정</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <form action="{{ url_for('edit_major_summary', novel_id=novel.id, major_summary_id=summary.id) }}" method="POST">
+                                                <div class="modal-body">
+                                                    <div class="mb-3">
+                                                        <label for="editMajorSummaryTitle-{{ summary.id }}" class="form-label">제목</label>
+                                                        <input type="text" class="form-control" id="editMajorSummaryTitle-{{ summary.id }}" name="title" value="{{ summary.title }}" required>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="editMajorSummaryContent-{{ summary.id }}" class="form-label">내용</label>
+                                                        <textarea class="form-control" id="editMajorSummaryContent-{{ summary.id }}" name="content" rows="10" required>{{ summary.content }}</textarea>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                                                    <button type="submit" class="btn btn-primary">저장</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Delete Major Summary Modal -->
+                                <div class="modal fade" id="deleteMajorSummaryModal-{{ summary.id }}" tabindex="-1" aria-labelledby="deleteMajorSummaryModalLabel-{{ summary.id }}" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="deleteMajorSummaryModalLabel-{{ summary.id }}">대요약본 삭제 확인</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <p class="text-danger">정말로 "{{ summary.title }}" 대요약본을 삭제하시겠습니까?</p>
+                                                <p>이 작업은 되돌릴 수 없습니다.</p>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                                                <form action="{{ url_for('delete_major_summary', novel_id=novel.id, major_summary_id=summary.id) }}" method="POST">
+                                                    <button type="submit" class="btn btn-danger">삭제</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-center text-muted my-3">
+                            대요약본이 없습니다. '새 대요약본' 버튼을 클릭하여 추가하세요.
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+
             <!-- Characters -->
             <div class="card mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
@@ -595,6 +687,25 @@
                         </div>
                         
                         <div class="mb-3">
+                            <label class="form-label">대요약본 선택</label>
+                            <div class="form-text mb-2">AI에게 전달할 대요약본을 선택하세요. 여러 회차의 종합적인 요약을 제공합니다.</div>
+                            {% if major_summaries %}
+                                <div class="list-group" style="max-height: 200px; overflow-y: auto;">
+                                    {% for summary in major_summaries %}
+                                        <label class="list-group-item">
+                                            <input class="form-check-input me-1" type="checkbox" name="major_summaries" value="{{ summary.id }}">
+                                            {{ summary.title }}
+                                        </label>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="alert alert-warning">
+                                    대요약본이 없습니다. '대요약본' 섹션에서 추가해주세요.
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
                             <label class="form-label">요약본 선택</label>
                             <div class="form-text mb-2">AI에게 전달할 회차 요약본을 선택하세요.</div>
                             {% if chapters %}
@@ -769,51 +880,116 @@
             </div>
         </div>
     </div>
+    
+    <!-- New Major Summary Modal -->
+    <div class="modal fade" id="newMajorSummaryModal" tabindex="-1" aria-labelledby="newMajorSummaryModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="newMajorSummaryModalLabel">새 대요약본 추가</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <ul class="nav nav-tabs" id="majorSummaryTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="manual-tab" data-bs-toggle="tab" data-bs-target="#manual-content" type="button" role="tab" aria-controls="manual-content" aria-selected="true">직접 작성</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="generate-tab" data-bs-toggle="tab" data-bs-target="#generate-content" type="button" role="tab" aria-controls="generate-content" aria-selected="false">AI 생성</button>
+                        </li>
+                    </ul>
+                    <div class="tab-content p-3" id="majorSummaryTabContent">
+                        <!-- 직접 작성 탭 -->
+                        <div class="tab-pane fade show active" id="manual-content" role="tabpanel" aria-labelledby="manual-tab">
+                            <form method="POST" action="{{ url_for('new_major_summary', novel_id=novel.id) }}">
+                                <div class="mb-3">
+                                    <label for="majorSummaryTitle" class="form-label">대요약본 제목</label>
+                                    <input type="text" class="form-control" id="majorSummaryTitle" name="title" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="majorSummaryContent" class="form-label">대요약본 내용</label>
+                                    <textarea class="form-control" id="majorSummaryContent" name="content" rows="10" required></textarea>
+                                </div>
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-primary">추가</button>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <!-- AI 생성 탭 -->
+                        <div class="tab-pane fade" id="generate-content" role="tabpanel" aria-labelledby="generate-tab">
+                            <form method="POST" action="{{ url_for('generate_major_summary_route', novel_id=novel.id) }}" id="generateMajorSummaryForm">
+                                <div class="mb-3">
+                                    <label class="form-label">요약할 회차 선택</label>
+                                    <div class="form-text mb-2">대요약본에 포함할 회차를 선택하세요.</div>
+                                    {% if chapters %}
+                                        <div class="list-group" style="max-height: 200px; overflow-y: auto;">
+                                            {% for chapter in chapters %}
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" name="chapter_ids" value="{{ chapter.id }}" id="chapter-select-{{ chapter.id }}">
+                                                    <label class="form-check-label" for="chapter-select-{{ chapter.id }}">
+                                                        {{ chapter.title }}
+                                                    </label>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                        <div class="d-flex justify-content-end mt-2">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary me-2" id="selectAllChapters">모두 선택</button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" id="deselectAllChapters">모두 해제</button>
+                                        </div>
+                                    {% else %}
+                                        <p class="text-muted">회차가 없습니다. 먼저 회차를 추가하세요.</p>
+                                    {% endif %}
+                                </div>
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-primary" id="generateMajorSummaryBtn">대요약본 생성</button>
+                                </div>
+                                
+                                <!-- 로딩 오버레이 -->
+                                <div id="summaryLoadingOverlay" class="position-absolute top-0 start-0 w-100 h-100 bg-white bg-opacity-75 d-flex flex-column justify-content-center align-items-center" style="display: none !important; z-index: 1000;">
+                                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                                        <span class="visually-hidden">로딩 중...</span>
+                                    </div>
+                                    <p class="text-primary fw-bold">대요약본 생성 중...</p>
+                                    <p class="text-muted small">AI가 선택한 회차들을 분석하고 있습니다. 이 작업은 최대 1분 정도 소요될 수 있습니다.</p>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-    // Initialize Sortable for chapter reordering
     document.addEventListener('DOMContentLoaded', function() {
         // 회차 정렬 기능
         const chapterList = document.getElementById('chapterList');
         if (chapterList) {
             new Sortable(chapterList, {
-                animation: 150,
                 handle: '.chapter-handle',
-                ghostClass: 'sortable-ghost',
-                onEnd: function() {
-                    // Update order after drag and drop
-                    const items = chapterList.querySelectorAll('li');
-                    const orderData = [];
-                    
-                    items.forEach((item, index) => {
-                        orderData.push({
-                            id: item.dataset.id,
-                            order: index + 1
-                        });
-                        
-                        // Update data-order attribute
-                        item.dataset.order = index + 1;
+                animation: 150,
+                onEnd: function(evt) {
+                    const chapters = Array.from(chapterList.querySelectorAll('li'));
+                    const chapterOrders = chapters.map((chapter, index) => {
+                        return {
+                            id: chapter.dataset.id,
+                            order: index
+                        };
                     });
                     
-                    // Send order data to server
-                    fetch('{{ url_for("reorder_chapters", novel_id=novel.id) }}', {
+                    fetch(`/novel/{{ novel.id }}/chapters/reorder`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                         },
-                        body: JSON.stringify({ order: orderData }),
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            console.log('Chapters reordered successfully');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error reordering chapters:', error);
+                        body: JSON.stringify({ chapters: chapterOrders })
                     });
                 }
             });
@@ -823,40 +999,23 @@
         const charactersAccordion = document.getElementById('charactersAccordion');
         if (charactersAccordion) {
             new Sortable(charactersAccordion, {
-                animation: 150,
                 handle: '.character-handle',
-                ghostClass: 'sortable-ghost',
-                onEnd: function() {
-                    // Update order after drag and drop
-                    const items = charactersAccordion.querySelectorAll('.accordion-item');
-                    const orderData = [];
-                    
-                    items.forEach((item, index) => {
-                        orderData.push({
-                            id: item.dataset.id,
-                            order: index + 1
-                        });
-                        
-                        // Update data-order attribute
-                        item.dataset.order = index + 1;
+                animation: 150,
+                onEnd: function(evt) {
+                    const characters = Array.from(charactersAccordion.querySelectorAll('.accordion-item'));
+                    const characterOrders = characters.map((character, index) => {
+                        return {
+                            id: character.dataset.id,
+                            order: index
+                        };
                     });
                     
-                    // Send order data to server
-                    fetch('{{ url_for("reorder_characters", novel_id=novel.id) }}', {
+                    fetch(`/novel/{{ novel.id }}/characters/reorder`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                         },
-                        body: JSON.stringify({ order: orderData }),
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            console.log('Characters reordered successfully');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error reordering characters:', error);
+                        body: JSON.stringify({ characters: characterOrders })
                     });
                 }
             });
@@ -866,40 +1025,23 @@
         const settingsAccordion = document.getElementById('settingsAccordion');
         if (settingsAccordion) {
             new Sortable(settingsAccordion, {
-                animation: 150,
                 handle: '.setting-handle',
-                ghostClass: 'sortable-ghost',
-                onEnd: function() {
-                    // Update order after drag and drop
-                    const items = settingsAccordion.querySelectorAll('.accordion-item');
-                    const orderData = [];
-                    
-                    items.forEach((item, index) => {
-                        orderData.push({
-                            id: item.dataset.id,
-                            order: index + 1
-                        });
-                        
-                        // Update data-order attribute
-                        item.dataset.order = index + 1;
+                animation: 150,
+                onEnd: function(evt) {
+                    const settings = Array.from(settingsAccordion.querySelectorAll('.accordion-item'));
+                    const settingOrders = settings.map((setting, index) => {
+                        return {
+                            id: setting.dataset.id,
+                            order: index
+                        };
                     });
                     
-                    // Send order data to server
-                    fetch('{{ url_for("reorder_settings", novel_id=novel.id) }}', {
+                    fetch(`/novel/{{ novel.id }}/settings/reorder`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                         },
-                        body: JSON.stringify({ order: orderData }),
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            console.log('Settings reordered successfully');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error reordering settings:', error);
+                        body: JSON.stringify({ settings: settingOrders })
                     });
                 }
             });
@@ -911,15 +1053,49 @@
         
         if (aiAssistForm && loadingOverlay) {
             aiAssistForm.addEventListener('submit', function() {
-                // Show loading overlay
                 loadingOverlay.style.display = 'flex';
-                
-                // Disable the submit button to prevent multiple submissions
-                const submitButton = document.getElementById('generateButton');
-                if (submitButton) {
-                    submitButton.disabled = true;
-                    submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>처리 중...';
+            });
+        }
+        
+        // 대요약본 생성 관련 기능
+        const generateMajorSummaryForm = document.getElementById('generateMajorSummaryForm');
+        const summaryLoadingOverlay = document.getElementById('summaryLoadingOverlay');
+        const selectAllChapters = document.getElementById('selectAllChapters');
+        const deselectAllChapters = document.getElementById('deselectAllChapters');
+        
+        // 모두 선택 버튼
+        if (selectAllChapters) {
+            selectAllChapters.addEventListener('click', function() {
+                const checkboxes = document.querySelectorAll('input[name="chapter_ids"]');
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = true;
+                });
+            });
+        }
+        
+        // 모두 해제 버튼
+        if (deselectAllChapters) {
+            deselectAllChapters.addEventListener('click', function() {
+                const checkboxes = document.querySelectorAll('input[name="chapter_ids"]');
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+            });
+        }
+        
+        // 대요약본 생성 로딩 오버레이
+        if (generateMajorSummaryForm && summaryLoadingOverlay) {
+            generateMajorSummaryForm.addEventListener('submit', function(e) {
+                // 최소 하나의 회차가 선택되었는지 확인
+                const checkboxes = document.querySelectorAll('input[name="chapter_ids"]:checked');
+                if (checkboxes.length === 0) {
+                    e.preventDefault();
+                    alert('최소 하나 이상의 회차를 선택해주세요.');
+                    return false;
                 }
+                
+                // 로딩 오버레이 표시
+                summaryLoadingOverlay.style.display = 'flex';
             });
         }
     });
