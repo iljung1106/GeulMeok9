@@ -738,8 +738,19 @@ def init_routes(app):
         title = f"대요약본: {range_title}"
         
         try:
-            # AI를 사용하여 대요약본 생성
-            summary_content = generate_major_summary(chapters)
+            # 각 회차의 제목과 내용 수집
+            chapters_content = []
+            for chapter in chapters:
+                chapters_content.append({
+                    'title': chapter.title,
+                    'content': chapter.content
+                })
+            
+            # 메인 모델 가져오기
+            main_model = request.form.get('main_model', 'gemini-2.5-pro-exp-03-25')
+            
+            # 대요약본 생성
+            summary_content = generate_major_summary(chapters_content, main_model)
             
             # 대요약본 저장
             chapter_range = ",".join([str(ch.id) for ch in chapters])

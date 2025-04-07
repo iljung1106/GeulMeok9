@@ -63,11 +63,11 @@ else:
 # AI Helper functions
 def get_available_models():
     return {
-        "main": ["gemini-2.5-pro-preview-03-25", "gemini-2.5-pro-exp-03-25", "gemini-2.0-flash-thinking-exp-01-21", "gemini-2.0-flash"],
+        "main": ["gemini-2.5-pro-exp-03-25", "gemini-2.5-pro-preview-03-25", "gemini-2.0-flash-thinking-exp-01-21", "gemini-2.0-flash"],
         "assistant": ["gemini-2.0-flash", "gemini-2.0-flash-thinking-exp-01-21"]
     }
 
-def generate_ai_response(prompt, model_name="gemini-2.5-pro-preview-03-25"):
+def generate_ai_response(prompt, model_name="gemini-2.5-pro-exp-03-25"):
     global INVALID_API_KEYS
     
     try:
@@ -180,12 +180,12 @@ def generate_summary(text, model_name="gemini-2.0-flash"):
     
     return generate_ai_response(prompt, model_name)
 
-def generate_major_summary(chapters, model_name="gemini-2.5-pro-preview-03-25"):
+def generate_major_summary(chapters, model_name="gemini-2.5-pro-exp-03-25"):
     # 각 회차의 제목과 내용을 결합
     combined_text = ""
     for idx, chapter in enumerate(chapters, 1):
-        combined_text += f"## 회차 {idx}: {chapter.title}\n\n"
-        combined_text += f"{chapter.content}\n\n"
+        combined_text += f"## 회차 {idx}: {chapter['title']}\n\n"
+        combined_text += f"{chapter['content']}\n\n"
     
     prompt = f"""다음은 소설의 여러 회차입니다. 이 회차들의 내용을 종합하여 전체 흐름이 잘 드러나도록 1000자 내외로 요약해주세요.
     주요 사건, 인물의 발전, 플롯의 전개를 중심으로 요약하되, 개인적인 감상이나 평가는 포함하지 마세요.
