@@ -272,25 +272,21 @@ def update_api_keys(new_api_keys):
     for i, key in enumerate(new_api_keys_list):
         print(f"  키 {i+1}: {key[:4]}...{key[-4:] if len(key) > 8 else ''} (길이: {len(key)})")
     
-    # 기존 API 키 목록과 다른 경우에만 업데이트
-    if new_api_keys_list != GOOGLE_API_KEYS:
-        # 환경 변수 설정 (쉼표로 구분된 문자열로 저장)
-        os.environ['GOOGLE_API_KEY'] = ','.join(new_api_keys_list)
-        print(f"환경 변수에 저장된 API 키: {os.environ['GOOGLE_API_KEY']}")
-        
-        # 전역 변수 업데이트
-        GOOGLE_API_KEYS = new_api_keys_list
-        # API 키 인덱스 초기화
-        CURRENT_API_KEY_INDEX = 0
-        # 유효하지 않은 API 키 목록 초기화
-        INVALID_API_KEYS.clear()
-        
-        if GOOGLE_API_KEYS:
-            # 첫 번째 API 키로 초기 구성
-            genai.configure(api_key=GOOGLE_API_KEYS[0])
-            print(f"API 키 {len(GOOGLE_API_KEYS)}개로 업데이트 완료")
-            return True, f'{len(GOOGLE_API_KEYS)}개의 Google API 키가 성공적으로 업데이트되었습니다.'
-        else:
-            return False, 'API 키가 설정되지 않았습니다.'
+    # 환경 변수 설정 (쉼표로 구분된 문자열로 저장)
+    os.environ['GOOGLE_API_KEY'] = ','.join(new_api_keys_list)
+    print(f"환경 변수에 저장된 API 키: {len(new_api_keys_list)}개")
     
-    return False, '변경사항이 없습니다.'
+    # 전역 변수 업데이트
+    GOOGLE_API_KEYS = new_api_keys_list
+    # API 키 인덱스 초기화
+    CURRENT_API_KEY_INDEX = 0
+    # 유효하지 않은 API 키 목록 초기화
+    INVALID_API_KEYS.clear()
+    
+    if GOOGLE_API_KEYS:
+        # 첫 번째 API 키로 초기 구성
+        genai.configure(api_key=GOOGLE_API_KEYS[0])
+        print(f"API 키 {len(GOOGLE_API_KEYS)}개로 업데이트 완료")
+        return True, f'{len(GOOGLE_API_KEYS)}개의 Google API 키가 성공적으로 업데이트되었습니다.'
+    else:
+        return False, 'API 키가 설정되지 않았습니다.'

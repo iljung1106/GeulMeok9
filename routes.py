@@ -804,6 +804,7 @@ def init_routes(app):
                 if success:
                     # API 키를 사용자 설정에도 저장
                     user_settings.api_key = new_api_keys
+                    db.session.commit()  # 변경사항 즉시 커밋
                     flash(message)
                 else:
                     flash(message)

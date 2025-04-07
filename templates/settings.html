@@ -110,7 +110,7 @@
 </div>
 
 <script>
-    // 슬라이더 값을 실시간으로 표시
+    /* 슬라이더 값을 실시간으로 표시 */
     document.getElementById('temperature').addEventListener('input', function() {
         document.getElementById('temperature_value').value = this.value;
     });
@@ -120,7 +120,7 @@
     });
     
     {% if is_admin %}
-    // API 키 테스트 기능
+    /* API 키 테스트 기능 */
     document.getElementById('test_api_key').addEventListener('click', function() {
         var apiKeyInput = document.getElementById('api_key').value;
         var resultDiv = document.getElementById('api_test_result');
@@ -136,7 +136,7 @@
         resultDiv.textContent = 'API 키 테스트 중...';
         resultDiv.classList.remove('d-none');
         
-        // API 키 테스트 요청
+        /* API 키 테스트 요청 */
         fetch('/test_api_key', {
             method: 'POST',
             headers: {
