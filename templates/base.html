@@ -193,24 +193,45 @@
             <div class="col-md-2 sidebar d-none d-md-block">
                 <div class="d-flex flex-column p-3">
                     <h3 class="text-center mb-4">GeulMeok9</h3>
-                    <ul class="nav nav-pills flex-column mb-auto">
-                        <li class="nav-item">
-                            <a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">
+                    <ul class="nav flex-column">
+                        <li class="nav-item mb-2">
+                            <a href="{{ url_for('index') }}" class="nav-link">
                                 <i class="bi bi-house-door me-2"></i> 홈
                             </a>
                         </li>
-                        {% if novel %}
-                        <li class="nav-item">
-                            <a href="{{ url_for('edit_novel', novel_id=novel.id) }}" class="nav-link {% if request.endpoint == 'edit_novel' %}active{% endif %}">
-                                <i class="bi bi-book me-2"></i> {{ novel.title }}
+                        {% if current_user.is_authenticated %}
+                        <li class="nav-item mb-2">
+                            <a href="{{ url_for('new_novel') }}" class="nav-link">
+                                <i class="bi bi-plus-circle me-2"></i> 새 소설
                             </a>
                         </li>
-                        {% endif %}
-                        <li class="nav-item">
-                            <a href="{{ url_for('settings') }}" class="nav-link {% if request.endpoint == 'settings' %}active{% endif %}">
+                        <li class="nav-item mb-2">
+                            <a href="{{ url_for('settings') }}" class="nav-link">
                                 <i class="bi bi-gear me-2"></i> AI 설정
                             </a>
                         </li>
+                        <li class="nav-item mb-2">
+                            <a href="{{ url_for('profile') }}" class="nav-link">
+                                <i class="bi bi-person me-2"></i> 프로필
+                            </a>
+                        </li>
+                        <li class="nav-item mb-2">
+                            <a href="{{ url_for('logout') }}" class="nav-link">
+                                <i class="bi bi-box-arrow-right me-2"></i> 로그아웃
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="nav-item mb-2">
+                            <a href="{{ url_for('login') }}" class="nav-link">
+                                <i class="bi bi-box-arrow-in-right me-2"></i> 로그인
+                            </a>
+                        </li>
+                        <li class="nav-item mb-2">
+                            <a href="{{ url_for('register') }}" class="nav-link">
+                                <i class="bi bi-person-plus me-2"></i> 회원가입
+                            </a>
+                        </li>
+                        {% endif %}
                     </ul>
                 </div>
             </div>

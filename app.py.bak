@@ -1,0 +1,137 @@
+def generate_ai_response(prompt, model_name="gemini-2.5-pro-preview-03-25"):
+    global INVALID_API_KEYS
+    
+    try:
+        # 다음 API 키 가져오기
+        api_key = get_next_api_key()
+        if not api_key:
+            return "API 키가 설정되지 않았습니다. 설정 페이지에서 API 키를 입력해주세요."
+        
+        # 현재 요청에 대한 API 키 설정
+        print(f"API 요청에 사용할 키: {api_key[:4]}...{api_key[-4:] if len(api_key) > 8 else ''}")
+        genai.configure(api_key=api_key)
+        
+        # 안전 설정 구성 - 모든 검열 카테고리에 대해 최소 제한 설정
+        safety_settings = [
+            {
+                "category": "HARM_CATEGORY_HARASSMENT",
+                "threshold": "BLOCK_NONE"
+            },
+            {
+                "category": "HARM_CATEGORY_HATE_SPEECH",
+                "threshold": "BLOCK_NONE"
+            },
+            {
+                "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                "threshold": "BLOCK_NONE"
+            },
+            {
+                "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+                "threshold": "BLOCK_NONE"
+            }
+        ]
+        
+        # AI 안전 설정 적용
+        if AI_SAFETY_SETTINGS == "moderate":
+            safety_settings = None  # 기본 안전 설정 사용
+        
+        # 기본적으로 스트리밍 모드 사용 (더 안정적인 응답 처리)
+        try:
+            # 모델 생성
+            model = genai.GenerativeModel(
+                model_name=model_name,
+                safety_settings=safety_settings,
+                generation_config={
+                    "temperature": AI_TEMPERATURE,
+                    "top_p": AI_TOP_P,
+                    "max_output_tokens": 8192,
+                }
+            )
+            
+            # 스트리밍 모드로 응답 생성
+            print("스트리밍 모드로 응답 생성 시작")
+            response_stream = model.generate_content(prompt, stream=True, timeout=AI_TIMEOUT)
+            
+            # 청크 처리 및 결합
+            full_response = ""
+            chunk_count = 0
+            start_time = time.time()
+            
+            try:
+                for chunk in response_stream:
+                    # 청크 수신 로그
+                    chunk_count += 1
+                    if chunk_count % 5 == 0:
+                        elapsed = time.time() - start_time
+                        print(f"청크 {chunk_count}개 수신 (경과 시간: {elapsed:.2f}초)")
+                    
+                    # 청크 텍스트 추출 및 결합
+                    if hasattr(chunk, 'text') and chunk.text:
+                        full_response += chunk.text
+                    
+                    # 타임아웃 체크 (60초 이상 걸리면 중단)
+                    if time.time() - start_time > 60:
+                        print("응답 생성 시간이 60초를 초과하여 중단합니다.")
+                        break
+                
+                print(f"총 {chunk_count}개 청크 처리 완료 (소요 시간: {time.time() - start_time:.2f}초)")
+                
+                # 응답이 비어있는 경우 처리
+                if not full_response:
+                    print("응답이 비어있습니다. 비스트리밍 모드로 재시도합니다.")
+                    non_stream_response = model.generate_content(prompt, timeout=AI_TIMEOUT)
+                    return non_stream_response.text
+                
+                return full_response
+                
+            except Exception as chunk_error:
+                chunk_error_message = str(chunk_error)
+                print(f"청크 처리 중 오류 발생: {chunk_error_message}")
+                
+                # 일부 응답이라도 있으면 반환
+                if full_response:
+                    print(f"일부 응답 반환 (청크 {chunk_count}개 처리됨)")
+                    return full_response
+                
+                # API 키 유효성 검사
+                if "API_KEY_INVALID" in chunk_error_message or "API key not valid" in chunk_error_message:
+                    INVALID_API_KEYS.add(api_key)
+                    print(f"유효하지 않은 API 키: {api_key[:4]}... - 다른 키로 재시도합니다.")
+                    
+                    # 다른 API 키로 재시도
+                    if len(GOOGLE_API_KEYS) > 1 and len(INVALID_API_KEYS) < len(GOOGLE_API_KEYS):
+                        return generate_ai_response(prompt, model_name)
+                
+                # 비스트리밍 모드로 재시도
+                print("비스트리밍 모드로 재시도합니다.")
+                try:
+                    non_stream_response = model.generate_content(prompt, timeout=AI_TIMEOUT)
+                    return non_stream_response.text
+                except Exception as retry_error:
+                    return f"Error generating AI response: {retry_error}"
+                
+        except Exception as e:
+            error_message = str(e)
+            print(f"스트리밍 응답 생성 중 오류: {error_message}")
+            
+            # API 키가 유효하지 않은 경우 해당 키를 유효하지 않은 목록에 추가
+            if "API_KEY_INVALID" in error_message or "API key not valid" in error_message:
+                INVALID_API_KEYS.add(api_key)
+                print(f"유효하지 않은 API 키: {api_key[:4]}... - 다른 키로 재시도합니다.")
+                
+                # 다른 API 키로 재시도
+                if len(GOOGLE_API_KEYS) > 1 and len(INVALID_API_KEYS) < len(GOOGLE_API_KEYS):
+                    return generate_ai_response(prompt, model_name)
+            
+            # 비스트리밍 모드로 재시도
+            print("비스트리밍 모드로 재시도합니다.")
+            try:
+                non_stream_response = model.generate_content(prompt, timeout=AI_TIMEOUT)
+                return non_stream_response.text
+            except Exception as retry_error:
+                return f"Error generating AI response: {retry_error}"
+            
+    except Exception as e:
+        error_message = str(e)
+        print(f"일반 오류 발생: {error_message}")
+        return f"Error generating AI response: {error_message}"

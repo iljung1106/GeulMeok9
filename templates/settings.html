@@ -12,6 +12,7 @@
                 </div>
                 <div class="card-body">
                     <form method="POST" action="{{ url_for('settings') }}">
+                        {% if is_admin %}
                         <div class="mb-4">
                             <h5>Google API 키</h5>
                             <p class="text-muted">Google Generative AI API 키를 입력하세요. 여러 개의 API 키를 사용하려면 쉼표(,)로 구분하여 입력하세요. API 키는 Google AI Studio에서 발급받을 수 있습니다.</p>
@@ -28,6 +29,15 @@
                                 테스트 결과가 여기에 표시됩니다.
                             </div>
                         </div>
+                        {% else %}
+                        <div class="mb-4">
+                            <h5>Google API 키</h5>
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle-fill me-2"></i>
+                                API 키는 관리자만 설정할 수 있습니다. 필요한 경우 관리자에게 문의하세요.
+                            </div>
+                        </div>
+                        {% endif %}
 
                         <div class="mb-4">
                             <h5>타임아웃 설정</h5>
@@ -109,10 +119,11 @@
         document.getElementById('top_p_value').value = this.value;
     });
     
+    {% if is_admin %}
     // API 키 테스트 기능
     document.getElementById('test_api_key').addEventListener('click', function() {
-        const apiKeyInput = document.getElementById('api_key').value;
-        const resultDiv = document.getElementById('api_test_result');
+        var apiKeyInput = document.getElementById('api_key').value;
+        var resultDiv = document.getElementById('api_test_result');
         
         if (!apiKeyInput) {
             resultDiv.className = 'alert alert-danger';
@@ -133,20 +144,23 @@
             },
             body: JSON.stringify({ api_keys: apiKeyInput }),
         })
-        .then(response => response.json())
-        .then(data => {
+        .then(function(response) { 
+            return response.json(); 
+        })
+        .then(function(data) {
             if (data.success) {
                 resultDiv.className = 'alert alert-success';
-                resultDiv.innerHTML = `<strong>테스트 성공!</strong> ${data.message}`;
+                resultDiv.innerHTML = '<strong>테스트 성공!</strong> ' + data.message;
             } else {
                 resultDiv.className = 'alert alert-danger';
-                resultDiv.innerHTML = `<strong>테스트 실패:</strong> ${data.message}`;
+                resultDiv.innerHTML = '<strong>테스트 실패:</strong> ' + data.message;
             }
         })
-        .catch(error => {
+        .catch(function(error) {
             resultDiv.className = 'alert alert-danger';
             resultDiv.textContent = '테스트 중 오류가 발생했습니다: ' + error;
         });
     });
+    {% endif %}
 </script>
 {% endblock %}

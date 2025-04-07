@@ -1,0 +1,9 @@
+{
+  "AI_TIMEOUT": 300,
+  "AI_SAFETY_SETTINGS": "off",
+  "AI_TEMPERATURE": 0.7,
+  "AI_TOP_P": 0.9,
+  "GOOGLE_API_KEYS": [
+    "AIzaSyCrIqfUYN9TrL-dhwbygJV4lC3-61jJuFs"
+  ]
+}
