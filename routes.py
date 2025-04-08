@@ -56,6 +56,13 @@ def init_routes(app):
             password = request.form.get('password')
             password_confirm = request.form.get('password_confirm')
             
+            # 사용자명 유효성 검사 (영어, 숫자, 정해진 특수문자만 허용)
+            import re
+            username_pattern = re.compile(r'^[a-zA-Z0-9_\-\.]+$')
+            if not username_pattern.match(username):
+                flash('사용자명은 영어, 숫자, 특수문자(_-.)만 사용할 수 있습니다.')
+                return render_template('register.html')
+            
             # 유효성 검사
             if password != password_confirm:
                 flash('비밀번호가 일치하지 않습니다.')
@@ -142,6 +149,35 @@ def init_routes(app):
             novel = Novel(title=title, user_id=current_user.id)
             db.session.add(novel)
             db.session.commit()
+            
+            # 기본 프롬프트 추가
+            # 1. 시스템 프롬프트
+            system_prompt = Prompt(
+                name="기본 시스템 프롬프트",
+                content="당신의 역할은 카카오페이지와 네이버 시리즈, 문피아, 노벨피아의 인기 웹소설 작가로서 독자들이 몰입감 있게 읽을 수 있는 현대적인 문체로 글을 쓰는 것입니다.",
+                prompt_type="system",
+                novel_id=novel.id
+            )
+            
+            # 2. 상단 프롬프트
+            top_prompt = Prompt(
+                name="기본 상단 프롬프트",
+                content="2000글자 이상으로 작성하세요. 자연스러운 한국 웹소설 문체로 작성하세요.",
+                prompt_type="top",
+                novel_id=novel.id
+            )
+            
+            # 3. 하단 프롬프트
+            bottom_prompt = Prompt(
+                name="기본 하단 프롬프트",
+                content="쉼표 ','와 말줄임표 '…'의 사용을 최소화하세요. 유저가 작성한 내용을 반복해서 작성하지 말고, 필요한 이후 텍스트만 작성하세요.",
+                prompt_type="bottom",
+                novel_id=novel.id
+            )
+            
+            db.session.add_all([system_prompt, top_prompt, bottom_prompt])
+            db.session.commit()
+            
             return redirect(url_for('edit_novel', novel_id=novel.id))
         return render_template('new_novel.html')
 
@@ -484,11 +520,23 @@ def init_routes(app):
         top_prompt = Prompt.query.get(top_prompt_id) if top_prompt_id else None
         bottom_prompt = Prompt.query.get(bottom_prompt_id) if bottom_prompt_id else None
         
-        # User input
+        # 프롬프트 유형 및 사용자 입력
+        prompt_type = request.form.get('prompt_type', 'with_content')
         user_input = request.form.get('user_input', '')
         
+        # 프롬프트 유형에 따른 기본 프롬프트 설정
+        if prompt_type == 'no_content':
+            # 콘티 없이 회차 작성
+            # 이전 회차의 내용을 기반으로 다음 회차를 자동으로 생성하는 프롬프트
+            user_input = "이전 회차의 내용을 기반으로 다음 회차를 자연스럽게 이어서 작성해주세요. 2000글자 이상의 분량으로, 흥미로운 전개와 캐릭터 상호작용을 포함해주세요."
+        elif prompt_type == 'with_content':
+            # 콘티에 따라 회차 작성 (기본값)
+            if not user_input:
+                user_input = "위 콘티를 바탕으로 회차를 작성해주세요."
+        # 질문 및 기타 프롬프트는 사용자 입력 그대로 사용
+        
         # Selected model
-        main_model = request.form.get('main_model', 'gemini-2.5-pro-preview-03-25')
+        main_model = request.form.get('main_model', 'gemini-2.5-pro-exp-03-25')
         
         # Build the prompt
         full_prompt = ""

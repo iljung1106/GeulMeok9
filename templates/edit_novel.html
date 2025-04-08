@@ -745,6 +745,18 @@
                         
                         <div class="mb-3">
                             <label for="userInput" class="form-label">메인 프롬프트 (질문 또는 콘티)</label>
+                            <div class="mb-2">
+                                <div class="btn-group w-100" role="group" aria-label="프롬프트 유형">
+                                    <input type="radio" class="btn-check" name="prompt_type" id="promptType1" value="no_content" autocomplete="off">
+                                    <label class="btn btn-outline-primary" for="promptType1">콘티 없이 회차 작성</label>
+                                    
+                                    <input type="radio" class="btn-check" name="prompt_type" id="promptType2" value="with_content" autocomplete="off" checked>
+                                    <label class="btn btn-outline-primary" for="promptType2">콘티에 따라 회차 작성</label>
+                                    
+                                    <input type="radio" class="btn-check" name="prompt_type" id="promptType3" value="question" autocomplete="off">
+                                    <label class="btn btn-outline-primary" for="promptType3">질문 및 기타 프롬프트</label>
+                                </div>
+                            </div>
                             <textarea class="form-control" id="userInput" name="user_input" rows="5" placeholder="AI에게 질문하거나 다음 회차의 콘티를 입력하세요."></textarea>
                         </div>
                         
@@ -1045,6 +1057,37 @@
                     });
                 }
             });
+        }
+        
+        // 프롬프트 유형 변경 시 텍스트 영역 활성화/비활성화
+        const promptTypeRadios = document.querySelectorAll('input[name="prompt_type"]');
+        const userInputTextarea = document.getElementById('userInput');
+        
+        if (promptTypeRadios.length > 0 && userInputTextarea) {
+            // 초기 상태 설정
+            setUserInputState();
+            
+            // 라디오 버튼 변경 이벤트 리스너
+            promptTypeRadios.forEach(radio => {
+                radio.addEventListener('change', setUserInputState);
+            });
+            
+            // 텍스트 영역 상태 설정 함수
+            function setUserInputState() {
+                const selectedType = document.querySelector('input[name="prompt_type"]:checked').value;
+                
+                if (selectedType === 'no_content') {
+                    userInputTextarea.disabled = true;
+                    userInputTextarea.placeholder = '콘티 없이 회차 작성을 선택하셨습니다. AI가 자동으로 회차를 작성합니다.';
+                    userInputTextarea.value = '';
+                } else if (selectedType === 'with_content') {
+                    userInputTextarea.disabled = false;
+                    userInputTextarea.placeholder = '다음 회차의 콘티를 입력하세요.';
+                } else if (selectedType === 'question') {
+                    userInputTextarea.disabled = false;
+                    userInputTextarea.placeholder = 'AI에게 질문하거나 기타 프롬프트를 입력하세요.';
+                }
+            }
         }
         
         // AI Assist form loading overlay
