@@ -6,7 +6,7 @@ from ai_service import (
     generate_ai_response, check_spelling, generate_summary, 
     generate_major_summary, get_available_models, test_api_keys,
     update_api_keys, AI_TIMEOUT, AI_SAFETY_SETTINGS, 
-    AI_TEMPERATURE, AI_TOP_P, GOOGLE_API_KEYS
+    AI_TEMPERATURE, AI_TOP_P, GOOGLE_API_KEYS, review_chapter
 )
 from flask_login import login_user, logout_user, login_required, current_user
 
@@ -63,6 +63,11 @@ def init_routes(app):
                 flash('사용자명은 영어, 숫자, 특수문자(_-.)만 사용할 수 있습니다.')
                 return render_template('register.html')
             
+            # 이메일 필수 확인
+            if not email:
+                flash('이메일은 필수 입력 항목입니다.')
+                return render_template('register.html')
+            
             # 유효성 검사
             if password != password_confirm:
                 flash('비밀번호가 일치하지 않습니다.')
@@ -75,11 +80,10 @@ def init_routes(app):
                 return render_template('register.html')
                 
             # 이메일 중복 확인
-            if email:
-                existing_email = User.query.filter_by(email=email).first()
-                if existing_email:
-                    flash('이미 사용 중인 이메일입니다.')
-                    return render_template('register.html')
+            existing_email = User.query.filter_by(email=email).first()
+            if existing_email:
+                flash('이미 사용 중인 이메일입니다.')
+                return render_template('register.html')
             
             # 사용자 생성
             user = User(username=username, email=email)
@@ -300,6 +304,29 @@ def init_routes(app):
         
         result = check_spelling(content, assistant_model)
         return jsonify({'result': result})
+
+    @app.route('/novel/<int:novel_id>/chapter/<int:chapter_id>/review', methods=['POST'])
+    @login_required
+    def review_chapter_route(novel_id, chapter_id):
+        novel = Novel.query.get_or_404(novel_id)
+        chapter = Chapter.query.get_or_404(chapter_id)
+        
+        # 소설 소유권 확인
+        if novel.user_id != current_user.id and not current_user.is_admin:
+            flash('이 소설에 접근할 권한이 없습니다.')
+            return redirect(url_for('index'))
+            
+        content = request.form.get('content', '')
+        title = request.form.get('title', '')
+        assistant_model = request.form.get('assistant_model', 'gemini-2.5-pro-exp-03-25')
+        
+        try:
+            # AI 서비스를 사용하여 회차 감평
+            result = review_chapter(content, title, assistant_model)
+            return jsonify({'result': result})
+        except Exception as e:
+            app.logger.error(f"회차 감평 오류: {str(e)}")
+            return jsonify({'error': str(e)}), 500
 
     @app.route('/novel/<int:novel_id>/chapter/reorder', methods=['POST'])
     @login_required

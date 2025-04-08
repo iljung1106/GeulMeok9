@@ -181,17 +181,34 @@ def generate_summary(text, model_name="gemini-2.0-flash"):
     return generate_ai_response(prompt, model_name)
 
 def generate_major_summary(chapters, model_name="gemini-2.5-pro-exp-03-25"):
-    # 각 회차의 제목과 내용을 결합
+    # 모든 회차 내용을 결합
     combined_text = ""
-    for idx, chapter in enumerate(chapters, 1):
-        combined_text += f"## 회차 {idx}: {chapter['title']}\n\n"
-        combined_text += f"{chapter['content']}\n\n"
+    for i, chapter in enumerate(chapters):
+        combined_text += f"회차 {i+1}: {chapter['title']}\n{chapter['content']}\n\n"
     
-    prompt = f"""다음은 소설의 여러 회차입니다. 이 회차들의 내용을 종합하여 전체 흐름이 잘 드러나도록 1000자 내외로 요약해주세요.
-    주요 사건, 인물의 발전, 플롯의 전개를 중심으로 요약하되, 개인적인 감상이나 평가는 포함하지 마세요.
+    prompt = f"""다음은 소설의 여러 회차 내용입니다. 이 내용을 바탕으로 전체 스토리의 대요약본을 작성해주세요.
     각 회차의 중요한 내용이 모두 포함되도록 하되, 전체적인 스토리 흐름을 파악할 수 있게 요약해주세요.
     
     {combined_text}"""
+    
+    return generate_ai_response(prompt, model_name)
+
+def review_chapter(content, title, model_name="gemini-2.5-pro-exp-03-25"):
+    """
+    회차 내용에 대한 감평을 생성합니다.
+    """
+    prompt = f"""다음은 소설의 한 회차 내용입니다. 이 회차에 대한 감평을 작성해주세요.
+    이 회차는 전체 소설의 일부분이며, 앞뒤 맥락이 잘려있을 수 있습니다. 이 점을 고려하여 감평해주세요.
+    웹소설의 일부분임을 고려하고, 기본적으로 비판적인 태도를 유지하세요. 재미 요소를 언제나 생각하세요.
+    
+    회차 제목: {title}
+    
+    회차 내용:
+    {content}
+    
+    각 항목별로 구체적인 예시와 함께 평가해주세요. 좋은 점과 개선할 점을 균형 있게 다루어주세요.
+    이 회차만으로 평가하기 어려운 부분(전체 플롯, 캐릭터 아크 등)은 언급하지 않아도 됩니다.
+    """
     
     return generate_ai_response(prompt, model_name)
 

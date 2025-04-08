@@ -72,6 +72,9 @@
                         <button type="button" class="btn btn-sm btn-outline-secondary me-1" id="checkSpellingBtn" title="맞춤법 검사">
                             <i class="bi bi-spellcheck"></i> 맞춤법 검사
                         </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary me-1" id="reviewChapterBtn" title="회차 감평">
+                            <i class="bi bi-chat-quote"></i> 회차 감평
+                        </button>
                     </div>
                     <div class="word-count">
                         <span id="characterCount">0</span>자 / <span id="wordCount">0</span>단어
@@ -160,6 +163,24 @@
         </div>
     </div>
 </div>
+
+<!-- Chapter Review Modal -->
+<div class="modal fade" id="reviewResultModal" tabindex="-1" aria-labelledby="reviewResultModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="reviewResultModalLabel">회차 감평 결과</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="reviewResult"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -173,6 +194,7 @@
         const italicBtn = document.getElementById('italicBtn');
         const underlineBtn = document.getElementById('underlineBtn');
         const checkSpellingBtn = document.getElementById('checkSpellingBtn');
+        const reviewChapterBtn = document.getElementById('reviewChapterBtn');
         const assistantModelSelect = document.getElementById('assistantModelSelect');
         const assistantModelInput = document.getElementById('assistantModel');
         const regenerateSummaryBtn = document.getElementById('regenerateSummaryBtn');
@@ -180,6 +202,8 @@
         const spellingResultModal = new bootstrap.Modal(document.getElementById('spellingResultModal'));
         const spellingResult = document.getElementById('spellingResult');
         const applySpellingBtn = document.getElementById('applySpellingBtn');
+        const reviewResultModal = new bootstrap.Modal(document.getElementById('reviewResultModal'));
+        const reviewResult = document.getElementById('reviewResult');
         
         // Update word and character count
         function updateCounts() {
@@ -312,6 +336,64 @@
                 updateCounts();
                 spellingResultModal.hide();
             }
+        });
+        
+        // Chapter Review
+        reviewChapterBtn.addEventListener('click', function() {
+            const content = editor.innerHTML;
+            const title = document.getElementById('chapterTitle').value;
+            const assistantModel = assistantModelSelect.value;
+            
+            // Show modal with loading spinner
+            reviewResult.innerHTML = `
+                <div class="d-flex justify-content-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            `;
+            reviewResultModal.show();
+            
+            // Send request to get chapter review
+            fetch('{{ url_for("review_chapter_route", novel_id=novel.id, chapter_id=chapter.id) }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    'content': editor.innerText,
+                    'title': title,
+                    'assistant_model': assistantModel
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.result) {
+                    reviewResult.innerHTML = `
+                        <div class="mb-3">
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle-fill me-2"></i> 회차 감평 결과입니다.
+                            </div>
+                            <div class="border p-3 bg-light">
+                                ${data.result.replace(/\n/g, '<br>')}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    reviewResult.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i> 회차 감평 중 오류가 발생했습니다.
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                reviewResult.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i> 회차 감평 중 오류가 발생했습니다: ${error.message}
+                    </div>
+                `;
+            });
         });
     });
 </script>
