@@ -634,13 +634,48 @@ def init_routes(app):
         if not user_message:
             return jsonify({'error': 'No message provided'}), 400
         
-        prompt = f"User: {user_message}\n\nAssistant:"
+        # 세션에서 대화 기록 가져오기 (없으면 빈 리스트로 초기화)
+        chat_history = session.get('chat_history', [])
+        
+        # 새 사용자 메시지 추가
+        chat_history.append({"role": "user", "content": user_message})
+        
+        # 대화 기록을 기반으로 프롬프트 구성
+        prompt = "다음은 사용자와 AI 도우미 간의 대화입니다. 이전 대화 내용을 고려하여 응답해주세요.\n\n"
+        
+        for message in chat_history:
+            if message["role"] == "user":
+                prompt += f"User: {message['content']}\n\n"
+            else:
+                prompt += f"Assistant: {message['content']}\n\n"
+        
+        prompt += "Assistant:"
         
         try:
             response = generate_ai_response(prompt, model_name)
+            
+            # AI 응답을 대화 기록에 추가
+            chat_history.append({"role": "assistant", "content": response})
+            
+            # 대화 기록이 너무 길어지면 오래된 메시지 제거 (최대 10개 메시지 쌍 유지)
+            if len(chat_history) > 20:
+                chat_history = chat_history[-20:]
+            
+            # 세션에 업데이트된 대화 기록 저장
+            session['chat_history'] = chat_history
+            
             return jsonify({'response': response})
         except Exception as e:
             return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/chat/reset', methods=['POST'])
+    @login_required
+    def reset_chat():
+        # 세션에서 대화 기록 삭제
+        if 'chat_history' in session:
+            session.pop('chat_history')
+        
+        return jsonify({'success': True, 'message': '대화 기록이 초기화되었습니다.'})
 
     @app.route('/novel/<int:novel_id>/delete', methods=['POST'])
     @login_required

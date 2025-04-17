@@ -251,7 +251,12 @@
     <div class="chatbot-container" id="chatbotContainer">
         <div class="chatbot-header">
             <h5 class="m-0">AI 도우미</h5>
-            <button class="btn-close btn-close-white" id="chatbotClose"></button>
+            <div>
+                <button class="btn btn-sm btn-outline-light me-2" id="chatbotReset" title="대화 초기화">
+                    <i class="bi bi-arrow-clockwise"></i>
+                </button>
+                <button class="btn-close btn-close-white" id="chatbotClose"></button>
+            </div>
         </div>
         <div class="chatbot-messages" id="chatbotMessages">
             <div class="message bot-message">
@@ -279,6 +284,7 @@
             const chatbotInput = document.getElementById('chatbotInput');
             const chatbotSend = document.getElementById('chatbotSend');
             const chatbotMessages = document.getElementById('chatbotMessages');
+            const chatbotReset = document.getElementById('chatbotReset');
             
             // 마크다운 설정
             marked.setOptions({
@@ -301,6 +307,36 @@
             // 챗봇 닫기 버튼 클릭 이벤트
             chatbotClose.addEventListener('click', function() {
                 chatbotContainer.style.display = 'none';
+            });
+            
+            // 챗봇 초기화 버튼 클릭 이벤트
+            chatbotReset.addEventListener('click', function() {
+                // 로딩 표시
+                chatbotReset.disabled = true;
+                chatbotReset.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+                
+                // 서버에 대화 초기화 요청
+                fetch('/api/chat/reset', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // 대화 내용 초기화
+                    chatbotMessages.innerHTML = '';
+                    addMessage("안녕하세요! **글먹9 AI 도우미**입니다. 무엇을 도와드릴까요?\n\n다음과 같은 기능을 사용할 수 있습니다:\n\n- 소설 작성 도움\n- 캐릭터 설정 아이디어\n- 스토리 구성 조언\n- 마크다운 사용법 안내", 'bot', true);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    addMessage("대화 초기화 중 오류가 발생했습니다.", 'bot', true);
+                })
+                .finally(() => {
+                    // 버튼 상태 복원
+                    chatbotReset.disabled = false;
+                    chatbotReset.innerHTML = '<i class="bi bi-arrow-clockwise"></i>';
+                });
             });
             
             // 엔터 키로 메시지 전송
