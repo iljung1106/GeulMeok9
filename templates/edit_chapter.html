@@ -246,10 +246,8 @@
                 <div class="mb-3">
                     <label for="modifiedText" class="form-label">수정된 내용</label>
                     <div id="modifyResult">
-                        <div class="d-flex justify-content-center my-5">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle-fill me-2"></i> 지시 사항을 입력하고 '적용하기' 버튼을 클릭하세요.
                         </div>
                     </div>
                 </div>
@@ -595,16 +593,14 @@
         
         // Modify with Instructions
         modifyWithInstructionsBtn.addEventListener('click', function() {
-            const content = editor.innerHTML;
+            const content = editor.innerText; 
             const assistantModel = assistantModelSelect.value;
             
             // Show modal with loading spinner
             originalTextInstructions.value = content;
             modifyResult.innerHTML = `
-                <div class="d-flex justify-content-center my-5">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle-fill me-2"></i> 지시 사항을 입력하고 '적용하기' 버튼을 클릭하세요.
                 </div>
             `;
             modifyWithInstructionsModal.show();
@@ -619,12 +615,24 @@
                 editor.innerHTML = modifiedText;
                 updateCounts();
                 modifyWithInstructionsModal.hide();
+                
+                // 데이터 초기화
+                this.dataset.modifiedText = '';
             } else {
                 const instructions = instructionsText.value.trim();
                 const originalText = originalTextInstructions.value;
                 const assistantModel = assistantModelSelect.value;
                 
                 if (instructions) {
+                    // 로딩 표시
+                    modifyResult.innerHTML = `
+                        <div class="d-flex justify-content-center my-5">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    `;
+                    
                     // Send request to modify with instructions
                     fetch('{{ url_for("modify_chapter_with_instructions_route", novel_id=novel.id, chapter_id=chapter.id) }}', {
                         method: 'POST',
@@ -663,6 +671,9 @@
                             </div>
                         `;
                     });
+                } else {
+                    // 지시 사항이 비어있을 경우 알림
+                    alert('지시 사항을 입력해주세요.');
                 }
             }
         });

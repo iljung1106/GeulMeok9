@@ -753,9 +753,12 @@ def init_routes(app):
             return jsonify({'error': '지시 사항이 제공되지 않았습니다.'}), 400
         
         try:
-            # HTML 태그 제거
-            import re
-            clean_content = re.sub(r'<[^>]*>', '', content)
+            # HTML 태그 제거 - BeautifulSoup 사용
+            from bs4 import BeautifulSoup
+            
+            # HTML 문자열로 처리하기 위해 간단한 래퍼 추가
+            soup = BeautifulSoup("<div>" + content + "</div>", 'html.parser')
+            clean_content = soup.get_text()
             
             # AI 서비스를 사용하여 지시 사항에 따라 회차 수정
             result = modify_chapter_with_instructions(clean_content, instructions, assistant_model)
