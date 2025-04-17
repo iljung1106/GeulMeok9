@@ -7,7 +7,7 @@ from ai_service import (
     generate_major_summary, get_available_models, test_api_keys,
     update_api_keys, AI_TIMEOUT, AI_SAFETY_SETTINGS, 
     AI_TEMPERATURE, AI_TOP_P, GOOGLE_API_KEYS, review_chapter,
-    transform_text_style
+    transform_text_style, modify_chapter_with_instructions
 )
 from flask_login import login_user, logout_user, login_required, current_user
 
@@ -729,6 +729,39 @@ def init_routes(app):
             return jsonify({'result': result})
         except Exception as e:
             app.logger.error(f"문체 변환 오류: {str(e)}")
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/novel/<int:novel_id>/chapter/<int:chapter_id>/modify-with-instructions', methods=['POST'])
+    @login_required
+    def modify_chapter_with_instructions_route(novel_id, chapter_id):
+        novel = Novel.query.get_or_404(novel_id)
+        chapter = Chapter.query.get_or_404(chapter_id)
+        
+        # 소설 소유권 확인
+        if novel.user_id != current_user.id and not current_user.is_admin:
+            flash('이 소설에 접근할 권한이 없습니다.')
+            return redirect(url_for('index'))
+            
+        content = request.form.get('content', '')
+        instructions = request.form.get('instructions', '')
+        assistant_model = request.form.get('assistant_model', 'gemini-2.5-pro-exp-03-25')
+        
+        if not content:
+            return jsonify({'error': '수정할 텍스트가 제공되지 않았습니다.'}), 400
+        
+        if not instructions:
+            return jsonify({'error': '지시 사항이 제공되지 않았습니다.'}), 400
+        
+        try:
+            # HTML 태그 제거
+            import re
+            clean_content = re.sub(r'<[^>]*>', '', content)
+            
+            # AI 서비스를 사용하여 지시 사항에 따라 회차 수정
+            result = modify_chapter_with_instructions(clean_content, instructions, assistant_model)
+            return jsonify({'result': result})
+        except Exception as e:
+            app.logger.error(f"회차 수정 오류: {str(e)}")
             return jsonify({'error': str(e)}), 500
 
     @app.route('/novel/<int:novel_id>/delete', methods=['POST'])

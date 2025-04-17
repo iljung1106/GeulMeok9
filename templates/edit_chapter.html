@@ -84,6 +84,9 @@
                                 <li><a class="dropdown-item" href="#" id="conciseStyleBtn">간략하게 변환</a></li>
                             </ul>
                         </div>
+                        <button type="button" class="btn btn-sm btn-outline-secondary me-1" id="modifyWithInstructionsBtn" title="지시에 따라 수정">
+                            <i class="bi bi-magic"></i> 지시에 따라 수정
+                        </button>
                     </div>
                     <div class="word-count">
                         <span id="characterCount">0</span>자 / <span id="wordCount">0</span>단어
@@ -222,6 +225,42 @@
         </div>
     </div>
 </div>
+
+<!-- Modify with Instructions Modal -->
+<div class="modal fade" id="modifyWithInstructionsModal" tabindex="-1" aria-labelledby="modifyWithInstructionsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modifyWithInstructionsModalLabel">지시에 따라 회차 수정</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="instructionsText" class="form-label">지시 사항</label>
+                    <textarea class="form-control" id="instructionsText" rows="3" placeholder="예: '주인공의 감정을 더 강조해주세요', '액션 장면을 더 박진감 있게 만들어주세요', '대화를 더 자연스럽게 수정해주세요'"></textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="originalTextInstructions" class="form-label">원문</label>
+                    <textarea class="form-control" id="originalTextInstructions" rows="4" readonly></textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="modifiedText" class="form-label">수정된 내용</label>
+                    <div id="modifyResult">
+                        <div class="d-flex justify-content-center my-5">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+                <button type="button" class="btn btn-primary" id="applyModifyBtn">적용하기</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -251,6 +290,12 @@
         const applyTransformBtn = document.getElementById('applyTransformBtn');
         const elaborateStyleBtn = document.getElementById('elaborateStyleBtn');
         const conciseStyleBtn = document.getElementById('conciseStyleBtn');
+        const modifyWithInstructionsBtn = document.getElementById('modifyWithInstructionsBtn');
+        const modifyWithInstructionsModal = new bootstrap.Modal(document.getElementById('modifyWithInstructionsModal'));
+        const instructionsText = document.getElementById('instructionsText');
+        const originalTextInstructions = document.getElementById('originalTextInstructions');
+        const modifyResult = document.getElementById('modifyResult');
+        const applyModifyBtn = document.getElementById('applyModifyBtn');
         
         // Update word and character count
         function updateCounts() {
@@ -545,6 +590,80 @@
                 
                 updateCounts();
                 styleTransformModal.hide();
+            }
+        });
+        
+        // Modify with Instructions
+        modifyWithInstructionsBtn.addEventListener('click', function() {
+            const content = editor.innerHTML;
+            const assistantModel = assistantModelSelect.value;
+            
+            // Show modal with loading spinner
+            originalTextInstructions.value = content;
+            modifyResult.innerHTML = `
+                <div class="d-flex justify-content-center my-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            `;
+            modifyWithInstructionsModal.show();
+        });
+        
+        // Apply modify with instructions
+        applyModifyBtn.addEventListener('click', function() {
+            const modifiedText = this.dataset.modifiedText;
+            
+            if (modifiedText) {
+                // 수정된 텍스트를 에디터에 적용
+                editor.innerHTML = modifiedText;
+                updateCounts();
+                modifyWithInstructionsModal.hide();
+            } else {
+                const instructions = instructionsText.value.trim();
+                const originalText = originalTextInstructions.value;
+                const assistantModel = assistantModelSelect.value;
+                
+                if (instructions) {
+                    // Send request to modify with instructions
+                    fetch('{{ url_for("modify_chapter_with_instructions_route", novel_id=novel.id, chapter_id=chapter.id) }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: new URLSearchParams({
+                            'content': originalText,
+                            'instructions': instructions,
+                            'assistant_model': assistantModel
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.result) {
+                            modifyResult.innerHTML = `
+                                <div class="border p-3 bg-light">
+                                    ${data.result.replace(/\n/g, '<br>')}
+                                </div>
+                            `;
+                            
+                            // Store modified text
+                            applyModifyBtn.dataset.modifiedText = data.result;
+                        } else {
+                            modifyResult.innerHTML = `
+                                <div class="alert alert-danger">
+                                    <i class="bi bi-exclamation-triangle-fill me-2"></i> 지시에 따라 수정 중 오류가 발생했습니다.
+                                </div>
+                            `;
+                        }
+                    })
+                    .catch(error => {
+                        modifyResult.innerHTML = `
+                            <div class="alert alert-danger">
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i> 지시에 따라 수정 중 오류가 발생했습니다: ${error.message}
+                            </div>
+                        `;
+                    });
+                }
             }
         });
     });

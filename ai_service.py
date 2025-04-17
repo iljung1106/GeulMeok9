@@ -246,6 +246,23 @@ def transform_text_style(text, style_type, model_name="gemini-2.5-pro-exp-03-25"
     
     return generate_ai_response(prompt, model_name)
 
+def modify_chapter_with_instructions(text, instructions, model_name="gemini-2.5-pro-exp-03-25"):
+    """
+    사용자의 지시 사항에 따라 회차 내용을 수정합니다.
+    """
+    prompt = f"""다음은 웹소설의 회차 내용입니다. 제공된 지시 사항에 따라 이 내용을 수정해주세요.
+    원래 내용의 핵심 요소와 스토리는 유지하되, 지시 사항에 맞게 적절히 수정해주세요.
+    
+    원문:
+    {text}
+    
+    지시 사항:
+    {instructions}
+    
+    수정된 내용:"""
+    
+    return generate_ai_response(prompt, model_name)
+
 def test_api_keys(api_keys_input):
     """
     API 키 목록을 테스트하고 결과를 반환합니다.
