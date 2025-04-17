@@ -223,6 +223,11 @@ def transform_text_style(text, style_type, model_name="gemini-2.5-pro-exp-03-25"
     주어진 텍스트의 문체를 변환합니다.
     style_type: 'elaborate'(구체화) 또는 'concise'(간략화)
     """
+    # 텍스트 길이 제한 확인 (토큰 수 제한을 고려)
+    max_text_length = 15000  # 대략적인 토큰 제한 고려
+    if len(text) > max_text_length:
+        text = text[:max_text_length] + "...(이하 생략)"
+        
     if style_type == 'elaborate':
         prompt = f"""다음 문장을 더 구체적이고 상세하게 다시 작성해주세요. 
         원래 문장의 의미는 유지하되, 더 생생한 묘사, 감각적인 표현, 구체적인 디테일을 추가하여 
@@ -244,12 +249,32 @@ def transform_text_style(text, style_type, model_name="gemini-2.5-pro-exp-03-25"
     else:
         return "지원되지 않는 문체 변환 유형입니다."
     
-    return generate_ai_response(prompt, model_name)
+    try:
+        return generate_ai_response(prompt, model_name)
+    except Exception as e:
+        import traceback
+        error_msg = f"AI 응답 생성 중 오류 발생: {str(e)}\n{traceback.format_exc()}"
+        print(error_msg)  # 콘솔 로깅
+        
+        # 더 간단한 프롬프트로 재시도
+        simplified_prompt = f"""다음 텍스트의 문체를 {'구체적으로' if style_type == 'elaborate' else '간결하게'} 변환해주세요:
+        
+        텍스트: {text[:5000] if len(text) > 5000 else text}"""
+        
+        try:
+            return generate_ai_response(simplified_prompt, model_name)
+        except:
+            return "AI 응답 생성 중 오류가 발생했습니다. 텍스트 길이를 줄이거나 다시 시도해주세요."
 
 def modify_chapter_with_instructions(text, instructions, model_name="gemini-2.5-pro-exp-03-25"):
     """
     사용자의 지시 사항에 따라 회차 내용을 수정합니다.
     """
+    # 텍스트 길이 제한 확인 (토큰 수 제한을 고려)
+    max_text_length = 15000  # 대략적인 토큰 제한 고려
+    if len(text) > max_text_length:
+        text = text[:max_text_length] + "...(이하 생략)"
+    
     prompt = f"""다음은 웹소설의 회차 내용입니다. 제공된 지시 사항에 따라 이 내용을 수정해주세요.
     원래 내용의 핵심 요소와 스토리는 유지하되, 지시 사항에 맞게 적절히 수정해주세요.
     
@@ -261,7 +286,23 @@ def modify_chapter_with_instructions(text, instructions, model_name="gemini-2.5-
     
     수정된 내용:"""
     
-    return generate_ai_response(prompt, model_name)
+    try:
+        return generate_ai_response(prompt, model_name)
+    except Exception as e:
+        import traceback
+        error_msg = f"AI 응답 생성 중 오류 발생: {str(e)}\n{traceback.format_exc()}"
+        print(error_msg)  # 콘솔 로깅
+        # 더 간단한 프롬프트로 재시도
+        simplified_prompt = f"""다음 텍스트를 지시 사항에 따라 수정해주세요:
+        
+        텍스트: {text[:5000] if len(text) > 5000 else text}
+        
+        지시 사항: {instructions}"""
+        
+        try:
+            return generate_ai_response(simplified_prompt, model_name)
+        except:
+            return "AI 응답 생성 중 오류가 발생했습니다. 텍스트 길이를 줄이거나 다시 시도해주세요."
 
 def test_api_keys(api_keys_input):
     """
