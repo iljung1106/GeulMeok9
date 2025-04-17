@@ -6,7 +6,8 @@ from ai_service import (
     generate_ai_response, check_spelling, generate_summary, 
     generate_major_summary, get_available_models, test_api_keys,
     update_api_keys, AI_TIMEOUT, AI_SAFETY_SETTINGS, 
-    AI_TEMPERATURE, AI_TOP_P, GOOGLE_API_KEYS, review_chapter
+    AI_TEMPERATURE, AI_TOP_P, GOOGLE_API_KEYS, review_chapter,
+    transform_text_style
 )
 from flask_login import login_user, logout_user, login_required, current_user
 
@@ -676,6 +677,59 @@ def init_routes(app):
             session.pop('chat_history')
         
         return jsonify({'success': True, 'message': '대화 기록이 초기화되었습니다.'})
+
+    @app.route('/api/transform-style', methods=['POST'])
+    @login_required
+    def transform_style():
+        text = request.json.get('text', '')
+        style_type = request.json.get('style_type', '')
+        model_name = request.json.get('model', 'gemini-2.5-pro-exp-03-25')
+        
+        if not text:
+            return jsonify({'error': '변환할 텍스트가 제공되지 않았습니다.'}), 400
+        
+        if style_type not in ['elaborate', 'concise']:
+            return jsonify({'error': '지원되지 않는 문체 변환 유형입니다.'}), 400
+        
+        try:
+            result = transform_text_style(text, style_type, model_name)
+            return jsonify({'result': result})
+        except Exception as e:
+            app.logger.error(f"문체 변환 오류: {str(e)}")
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/novel/<int:novel_id>/chapter/<int:chapter_id>/transform-style', methods=['POST'])
+    @login_required
+    def transform_style_route(novel_id, chapter_id):
+        novel = Novel.query.get_or_404(novel_id)
+        chapter = Chapter.query.get_or_404(chapter_id)
+        
+        # 소설 소유권 확인
+        if novel.user_id != current_user.id and not current_user.is_admin:
+            flash('이 소설에 접근할 권한이 없습니다.')
+            return redirect(url_for('index'))
+            
+        content = request.form.get('content', '')
+        style = request.form.get('style', '')
+        assistant_model = request.form.get('assistant_model', 'gemini-2.5-pro-exp-03-25')
+        
+        if not content:
+            return jsonify({'error': '변환할 텍스트가 제공되지 않았습니다.'}), 400
+        
+        if style not in ['elaborate', 'concise']:
+            return jsonify({'error': '지원되지 않는 문체 변환 유형입니다.'}), 400
+        
+        try:
+            # HTML 태그 제거
+            import re
+            clean_content = re.sub(r'<[^>]*>', '', content)
+            
+            # AI 서비스를 사용하여 문체 변환
+            result = transform_text_style(clean_content, style, assistant_model)
+            return jsonify({'result': result})
+        except Exception as e:
+            app.logger.error(f"문체 변환 오류: {str(e)}")
+            return jsonify({'error': str(e)}), 500
 
     @app.route('/novel/<int:novel_id>/delete', methods=['POST'])
     @login_required

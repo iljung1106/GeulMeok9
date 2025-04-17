@@ -218,6 +218,34 @@ def review_chapter(content, title, model_name="gemini-2.5-pro-exp-03-25"):
     
     return generate_ai_response(prompt, model_name)
 
+def transform_text_style(text, style_type, model_name="gemini-2.5-pro-exp-03-25"):
+    """
+    주어진 텍스트의 문체를 변환합니다.
+    style_type: 'elaborate'(구체화) 또는 'concise'(간략화)
+    """
+    if style_type == 'elaborate':
+        prompt = f"""다음 문장을 더 구체적이고 상세하게 다시 작성해주세요. 
+        원래 문장의 의미는 유지하되, 더 생생한 묘사, 감각적인 표현, 구체적인 디테일을 추가하여 
+        독자가 장면을 더 선명하게 상상할 수 있도록 해주세요.
+        
+        원문:
+        {text}
+        
+        구체화된 문장:"""
+    elif style_type == 'concise':
+        prompt = f"""다음 문장을 더 간결하고 함축적으로 다시 작성해주세요.
+        원래 문장의 핵심 의미는 유지하되, 불필요한 수식어나 반복되는 표현을 제거하고
+        더 간결하면서도 강한 인상을 주는 문장으로 만들어주세요.
+        
+        원문:
+        {text}
+        
+        간략화된 문장:"""
+    else:
+        return "지원되지 않는 문체 변환 유형입니다."
+    
+    return generate_ai_response(prompt, model_name)
+
 def test_api_keys(api_keys_input):
     """
     API 키 목록을 테스트하고 결과를 반환합니다.

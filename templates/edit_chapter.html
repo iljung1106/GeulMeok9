@@ -75,6 +75,15 @@
                         <button type="button" class="btn btn-sm btn-outline-secondary me-1" id="reviewChapterBtn" title="회차 감평">
                             <i class="bi bi-chat-quote"></i> 회차 감평
                         </button>
+                        <div class="dropdown d-inline-block me-1">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="styleTransformBtn" data-bs-toggle="dropdown" aria-expanded="false" title="문체 변환">
+                                <i class="bi bi-pencil-square"></i> 문체 변환
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="styleTransformBtn">
+                                <li><a class="dropdown-item" href="#" id="elaborateStyleBtn">구체적으로 변환</a></li>
+                                <li><a class="dropdown-item" href="#" id="conciseStyleBtn">간략하게 변환</a></li>
+                            </ul>
+                        </div>
                     </div>
                     <div class="word-count">
                         <span id="characterCount">0</span>자 / <span id="wordCount">0</span>단어
@@ -181,6 +190,38 @@
         </div>
     </div>
 </div>
+
+<!-- Style Transform Modal -->
+<div class="modal fade" id="styleTransformModal" tabindex="-1" aria-labelledby="styleTransformModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="styleTransformModalLabel">문체 변환</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="originalText" class="form-label">원문</label>
+                    <textarea class="form-control" id="originalText" rows="4" readonly></textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="transformedText" class="form-label">변환된 문장</label>
+                    <div id="transformResult">
+                        <div class="d-flex justify-content-center my-5">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+                <button type="button" class="btn btn-primary" id="applyTransformBtn">적용하기</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -204,6 +245,12 @@
         const applySpellingBtn = document.getElementById('applySpellingBtn');
         const reviewResultModal = new bootstrap.Modal(document.getElementById('reviewResultModal'));
         const reviewResult = document.getElementById('reviewResult');
+        const styleTransformModal = new bootstrap.Modal(document.getElementById('styleTransformModal'));
+        const originalText = document.getElementById('originalText');
+        const transformResult = document.getElementById('transformResult');
+        const applyTransformBtn = document.getElementById('applyTransformBtn');
+        const elaborateStyleBtn = document.getElementById('elaborateStyleBtn');
+        const conciseStyleBtn = document.getElementById('conciseStyleBtn');
         
         // Update word and character count
         function updateCounts() {
@@ -394,6 +441,111 @@
                     </div>
                 `;
             });
+        });
+        
+        // Style Transform
+        elaborateStyleBtn.addEventListener('click', function() {
+            transformStyle('elaborate');
+        });
+        
+        conciseStyleBtn.addEventListener('click', function() {
+            transformStyle('concise');
+        });
+        
+        function transformStyle(styleType) {
+            // 선택된 텍스트 가져오기
+            const selection = window.getSelection();
+            const selectedText = selection.toString().trim();
+            
+            if (!selectedText) {
+                alert('변환할 텍스트를 선택해주세요.');
+                return;
+            }
+            
+            const assistantModel = assistantModelSelect.value;
+            
+            // Show modal with loading spinner
+            originalText.value = selectedText;
+            transformResult.innerHTML = `
+                <div class="d-flex justify-content-center my-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            `;
+            styleTransformModal.show();
+            
+            // Send request to transform style
+            fetch('{{ url_for("transform_style_route", novel_id=novel.id, chapter_id=chapter.id) }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    'content': selectedText,
+                    'assistant_model': assistantModel,
+                    'style': styleType
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.result) {
+                    transformResult.innerHTML = `
+                        <div class="border p-3 bg-light">
+                            ${data.result.replace(/\n/g, '<br>')}
+                        </div>
+                    `;
+                    applyTransformBtn.style.display = 'block';
+                    
+                    // Store transformed text and selection info
+                    applyTransformBtn.dataset.transformedText = data.result;
+                    applyTransformBtn.dataset.originalText = selectedText;
+                    
+                    // Store selection range info if possible
+                    if (selection.rangeCount > 0) {
+                        const range = selection.getRangeAt(0);
+                        applyTransformBtn.dataset.selectionStart = getNodeOffset(range.startContainer, range.startOffset);
+                        applyTransformBtn.dataset.selectionEnd = getNodeOffset(range.endContainer, range.endOffset);
+                    }
+                } else {
+                    transformResult.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i> 문체 변환 중 오류가 발생했습니다.
+                        </div>
+                    `;
+                    applyTransformBtn.style.display = 'none';
+                }
+            })
+            .catch(error => {
+                transformResult.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i> 문체 변환 중 오류가 발생했습니다: ${error.message}
+                    </div>
+                `;
+                applyTransformBtn.style.display = 'none';
+            });
+        }
+        
+        // Helper function to get node offset in editor
+        function getNodeOffset(node, offset) {
+            // This is a simplified approach - in a real implementation
+            // you would need more sophisticated logic to handle complex DOM structures
+            return { node: node, offset: offset };
+        }
+        
+        // Apply style transform
+        applyTransformBtn.addEventListener('click', function() {
+            const transformedText = this.dataset.transformedText;
+            const originalText = this.dataset.originalText;
+            
+            if (transformedText && originalText) {
+                // 선택된 텍스트를 변환된 텍스트로 대체
+                const editorContent = editor.innerHTML;
+                editor.innerHTML = editorContent.replace(originalText, transformedText);
+                
+                updateCounts();
+                styleTransformModal.hide();
+            }
         });
     });
 </script>
