@@ -284,7 +284,18 @@ def init_routes(app):
         # Generate summary if content changed
         if chapter.content and (not chapter.summary or 'regenerate_summary' in request.form):
             assistant_model = request.form.get('assistant_model', 'gemini-2.0-flash')
-            chapter.summary = generate_summary(chapter.content, assistant_model)
+            
+            # 현재 회차 이전의 모든 회차 요약본 가져오기
+            previous_chapters = Chapter.query.filter(
+                Chapter.novel_id == novel_id,
+                Chapter.order < chapter.order,
+                Chapter.summary.isnot(None)  # 요약이 있는 회차만
+            ).order_by(Chapter.order).all()
+            
+            # 이전 회차들의 요약본 리스트 생성
+            previous_summaries = [ch.summary for ch in previous_chapters if ch.summary]
+            
+            chapter.summary = generate_summary(chapter.content, assistant_model, previous_summaries)
         
         db.session.commit()
         return redirect(url_for('edit_chapter', novel_id=novel_id, chapter_id=chapter_id))

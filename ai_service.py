@@ -164,7 +164,7 @@ def generate_ai_response(prompt, model_name="gemini-2.5-pro-exp-03-25"):
         print(f"일반 오류 발생: {error_message}")
         return f"Error generating AI response: {error_message}"
 
-def check_spelling(text, model_name="gemini-2.0-flash"):
+def check_spelling(text, model_name="gemini-2.5-flash-preview-05-20"):
     prompt = f"""아래 텍스트의 맞춤법을 검사해주세요. 오류가 있다면 수정해서 전체 텍스트를 반환해주세요.
     오류가 없다면 '맞춤법 오류 없음'이라고 답변해주세요.
     
@@ -173,10 +173,29 @@ def check_spelling(text, model_name="gemini-2.0-flash"):
     
     return generate_ai_response(prompt, model_name)
 
-def generate_summary(text, model_name="gemini-2.0-flash"):
-    prompt = f"""다음 소설 회차의 내용을 사건과 인물 중심으로 300자 이내로 요약해주세요. 개인적인 감상이나 평가는 포함하지 마세요.:
+def generate_summary(text, model_name="gemini-2.5-flash-preview-05-20", previous_summaries=None):
+    """
+    현재 회차의 내용과 이전 회차들의 요약본을 참고하여 요약을 생성합니다.
     
-    {text}"""
+    Args:
+        text: 현재 회차의 내용
+        model_name: 사용할 AI 모델
+        previous_summaries: 이전 회차들의 요약본 리스트 (선택사항)
+    """
+    # 기본 프롬프트
+    prompt = """다음 소설 회차의 내용을 사건과 인물 중심으로 1000자 이내로 요약해주세요. 개인적인 감상이나 평가는 포함하지 마세요."""
+    
+    # 이전 회차들의 요약본이 있는 경우 컨텍스트로 추가
+    if previous_summaries and len(previous_summaries) > 0:
+        prompt += "\n\n이전 회차들의 요약본 (참고용):\n"
+        for i, summary in enumerate(previous_summaries):
+            prompt += f"회차 {i+1} 요약: {summary}\n"
+        
+        prompt += "\n위 이전 회차들의 맥락을 고려하여, 다음 현재 회차의 내용을 요약해주세요. 이전 회차와의 연결점, 캐릭터의 변화, 스토리 진행 등을 고려하여 일관성 있는 요약을 작성해주세요.\n\n"
+    else:
+        prompt += "\n\n"
+    
+    prompt += f"현재 회차 내용:\n{text}"
     
     return generate_ai_response(prompt, model_name)
 
